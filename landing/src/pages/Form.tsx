@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import { FormInput } from "./components/FormInput";
-import { FormSelect } from "./components/FormSelect";
-import { FormRadio } from "./components/FormRadio";
-import { FileUpload } from "./components/FileUpload";
-import { ProgressBar } from "./components/ProgressBar";
+import React, { useEffect, useState } from "react";
+import { FormInput } from "../components/FormInput";
+import { FormSelect } from "../components/FormSelect";
+import { FormRadio } from "../components/FormRadio";
+import { FileUpload } from "../components/FileUpload";
+import { ProgressBar } from "../components/ProgressBar";
 import {
   FormData,
   FormStep,
@@ -11,7 +11,7 @@ import {
   TattooDetail,
   RelativeDetail,
   TravelDetail,
-} from "./types"; // Added TravelDetail
+} from "../types/types"; // Added TravelDetail
 import {
   ClipboardList,
   ArrowLeft,
@@ -20,24 +20,128 @@ import {
   PlusCircle,
   Trash2,
 } from "lucide-react";
-import { supabase } from "./lib/supabase/client";
+import { supabase } from "../lib/supabase/client";
+import DuplicatePassportModal from "../components/DuplicatePassportModal";
 
 // Helper to generate unique IDs
 const generateId = () => `_${Math.random().toString(36).substr(2, 9)}`;
 
-function App() {
+const Form: React.FC= () => {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [currentStep, setCurrentStep] = useState(1);
   const [formType, setFormType] = useState<FormStep>("selection");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+const [isPassportDuplicate, setIsPassportDuplicate] = useState(false);
+// Nuevo estado para controlar si el usuario ya ha completado un formulario
+const [hasCompletedForm, setHasCompletedForm] = useState(false);
 
-  const handleInputChange = (
+// Verificar si el usuario ya completó un formulario al cargar el componente
+useEffect(() => {
+  const checkUserFormStatus = async () => {
+    try {
+      // Obtener la sesión del usuario actual
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      
+      if (!userId) {
+        console.log("No hay sesión de usuario");
+        return;
+      }
+      
+      // Consultar si el usuario ya ha completado un formulario
+      const { data, error } = await supabase
+        .from("clients")
+        .select("has_completed_form")
+        .eq("user_id", userId)
+        .limit(1);
+      
+      if (error) {
+        console.error("Error al verificar estado del formulario:", error);
+        return;
+      }
+      
+      // Si hay datos y has_completed_form es true, actualizar el estado
+      if (data && data.length > 0 && data[0].has_completed_form === true) {
+        setHasCompletedForm(true);
+        // Mostrar el modal si ya completó un formulario
+        setIsDuplicateModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Error al verificar estado del formulario:", error);
+    }
+  };
+  
+  checkUserFormStatus();
+}, []);
+
+/* const checkPassportExists = async (passportNumber: string) => {
+    try {
+        if (!passportNumber || passportNumber.trim() === '') {
+          return false;
+        }
+        
+        // Obtener la sesión del usuario
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        // Verifica si hay una sesión activa
+        if (!sessionData?.session?.user?.id) {
+          console.log("No hay sesión de usuario");
+          return false;
+        }
+        
+        // Log para debugging
+        console.log("Verificando pasaporte:", passportNumber);
+        
+        // Realizar la consulta a la base de datos
+        const { data, error } = await supabase
+          .from("clients")
+          .select("id, passport_number")
+          .eq("passport_number", passportNumber)
+          .limit(1);
+        
+        // Manejo de errores en la consulta
+        if (error) {
+          console.error("Error al verificar pasaporte:", error);
+          return false;
+        }
+        
+        // Debugging para ver qué devuelve la consulta
+        console.log("Resultado de la consulta:", data);
+        
+        // Verificar si hay resultados
+        const exists = data && data.length > 0;
+        console.log("¿Existe el pasaporte?", exists);
+        
+        return exists;
+      } catch (error) {
+        console.error("Error inesperado al verificar pasaporte:", error);
+        return false;
+      }
+  }; */
+
+  const handleInputChange = async (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
+    e.preventDefault();
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    /* if (name === "passportNumber") {
+        // Verificar después de que el usuario haya ingresado suficientes caracteres
+        if (value && value.trim().length >= 3) {
+          console.log("Verificando pasaporte:", value);
+          const exists = await checkPassportExists(value);
+          
+          // Actualizar el estado según el resultado
+          setIsPassportDuplicate(exists);
+          if (exists) {
+            setIsDuplicateModalOpen(true);
+          }
+        }
+      } */
   };
 
   const handleFileChange = (name: string) => (file: File | null) => {
@@ -81,8 +185,8 @@ function App() {
         {
           id: generateId(),
           relationship: "",
-          fullName: "",
-          residencyStatus: "",
+          full_name: "",
+          residency_status: "",
         },
       ],
     }));
@@ -116,8 +220,8 @@ function App() {
         ...prev.travels,
         {
           id: generateId(),
-          startDate: "",
-          endDate: "",
+          start_date: "",
+          end_date: "",
           country: "",
           reason: "",
         },
@@ -148,6 +252,11 @@ function App() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Basic validation check for conditional fields before proceeding
+    if (hasCompletedForm) {
+      setIsDuplicateModalOpen(true);
+      return;
+    }
+
     if (formType === "new") {
       if (
         formData.hasTattoos === true &&
@@ -161,8 +270,8 @@ function App() {
         formData.relatives.some(
           (r) =>
             !r.relationship.trim() ||
-            !r.fullName.trim() ||
-            !r.residencyStatus.trim()
+            !r.full_name.trim() ||
+            !r.residency_status.trim()
         )
       ) {
         alert("Por favor, complete todos los detalles de los familiares.");
@@ -172,8 +281,8 @@ function App() {
         formData.hasTraveledLastFiveYears === true &&
         formData.travels.some(
           (t) =>
-            !t.startDate.trim() ||
-            !t.endDate.trim() ||
+            !t.start_date.trim() ||
+            !t.end_date.trim() ||
             !t.country.trim() ||
             !t.reason.trim()
         )
@@ -233,6 +342,7 @@ function App() {
         current_job: formData.currentJob,
         current_agency: formData.currentAgencyName,
         user_id: userId,
+        has_completed_form: true
       })
       .select();
 
@@ -317,6 +427,7 @@ function App() {
         phone_number: formData.phoneNumber,
         current_job: formData.currentJob,
         user_id: userId,
+        has_completed_form: true
       })
       .select();
 
@@ -402,7 +513,7 @@ function App() {
       file_path: filePath,
       file_name: file.name,
 
-      user_id: userId,
+      /* user_id: userId, */
     });
 
     if (docError)
@@ -435,8 +546,8 @@ function App() {
   ) => {
     const travelInserts = travels.map((travel) => ({
       client_id: clientId,
-      start_date: travel.startDate,
-      end_date: travel.endDate,
+      start_date: travel.start_date,
+      end_date: travel.end_date,
       country: travel.country,
       reason: travel.reason,
     }));
@@ -457,8 +568,8 @@ function App() {
     const relativeInserts = relatives.map((relative) => ({
       client_id: clientId,
       relationship: relative.relationship,
-      full_name: relative.fullName,
-      residency_status: relative.residencyStatus,
+      full_name: relative.full_name,
+      residency_status: relative.residency_status,
     }));
 
     if (relativeInserts.length > 0) {
@@ -905,11 +1016,11 @@ function App() {
                         label="Fecha Desde"
                         type="date"
                         name={`travel_startDate_${travel.id}`}
-                        value={travel.startDate}
+                        value={travel.start_date}
                         onChange={(e) =>
                           handleTravelChange(
                             travel.id,
-                            "startDate",
+                            "start_date",
                             e.target.value
                           )
                         }
@@ -918,11 +1029,11 @@ function App() {
                         label="Fecha Hasta"
                         type="date"
                         name={`travel_endDate_${travel.id}`}
-                        value={travel.endDate}
+                        value={travel.end_date}
                         onChange={(e) =>
                           handleTravelChange(
                             travel.id,
-                            "endDate",
+                            "end_date",
                             e.target.value
                           )
                         }
@@ -1014,11 +1125,11 @@ function App() {
                         label="Nombre Completo"
                         type="text"
                         name={`relative_fullName_${relative.id}`}
-                        value={relative.fullName}
+                        value={relative.full_name}
                         onChange={(e) =>
                           handleRelativeChange(
                             relative.id,
-                            "fullName",
+                            "full_name",
                             e.target.value
                           )
                         }
@@ -1027,11 +1138,11 @@ function App() {
                       <FormSelect
                         label="Estado Residencia"
                         name={`relative_residency_${relative.id}`}
-                        value={relative.residencyStatus}
+                        value={relative.residency_status}
                         onChange={(e) =>
                           handleRelativeChange(
                             relative.id,
-                            "residencyStatus",
+                            "residency_status",
                             e.target.value
                           )
                         }
@@ -1284,10 +1395,16 @@ function App() {
               />
             </div>
           )}
+          {hasCompletedForm ? (
+        <DuplicatePassportModal 
+          isOpen={isDuplicateModalOpen}
+          onClose={() => setIsDuplicateModalOpen(false)}
+        />
+      ) : null}
 
           {submitSuccess ? (
             renderSuccessMessage()
-          ) : (
+          ) :  (
             <form onSubmit={handleSubmit} className="space-y-8">
               {formType === "selection" && renderSelectionScreen()}
               {formType === "new" && renderNewProcessForm()}
@@ -1317,7 +1434,7 @@ function App() {
                   <button
                     type="submit"
                     className="inline-flex items-center justify-center px-6 py-2 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors w-full sm:w-auto"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isPassportDuplicate}
                   >
                     {isSubmitting ? (
                       <>
@@ -1343,7 +1460,9 @@ function App() {
                         </svg>
                         Procesando...
                       </>
-                    ) : currentStep === getTotalSteps() ? (
+                    ) : isPassportDuplicate ? (
+                        "Proceso existente"
+                      ) : currentStep === getTotalSteps() ? (
                       <>
                         Enviar{" "}
                         <Send className="ml-2 h-5 w-5" aria-hidden="true" />
@@ -1370,8 +1489,9 @@ function App() {
           </p>
         </footer>
       </div>
+      
     </div>
   );
 }
 
-export default App;
+export default Form;
