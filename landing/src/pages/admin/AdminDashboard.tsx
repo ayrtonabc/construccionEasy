@@ -1,5 +1,5 @@
 import { useState, useEffect, ChangeEvent } from 'react';
-import { Users, Clock, CheckCircle2, AlertTriangle, FileText, Save } from 'lucide-react';
+import { Users, Clock, CheckCircle2, AlertTriangle, FileText, Save, Briefcase } from 'lucide-react';
 import { supabase } from "../../lib/supabase/client";
 import { Client, AdminStats, AdminActivityItem, AdminUrgentTask } from "../../types/types";
 // Importar el módulo de registro de actividades

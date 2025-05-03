@@ -11,8 +11,10 @@ import {
   MapPin,
   AlertCircle,
   CheckCircle,
+  UserPlus, // Import UserPlus icon
   XCircle,
 } from "lucide-react";
+import { Link } from "react-router-dom"; // Import Link
 import {
   Client,
   NewResidenceApplication,
@@ -303,8 +305,8 @@ export default function ClientsManagement() {
         </div>
 
         {/* Filtros y búsqueda */}
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-          <div className="flex gap-4 flex-col sm:flex-row">
+        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex justify-between items-center flex-wrap gap-4">
+          <div className="flex gap-4 flex-col sm:flex-row flex-grow">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <input
@@ -333,6 +335,14 @@ export default function ClientsManagement() {
               <option value="completed">Completado</option>
             </select>
           </div>
+          {/* Add Create Client Button */}
+          <Link
+            to="/admin/crear-cliente"
+            className="bg-indigo-600 text-white px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all duration-300 shadow-sm"
+          >
+            <UserPlus size={20} />
+            Crear Cliente
+          </Link>
         </div>
 
         {/* Tabla de clientes */}

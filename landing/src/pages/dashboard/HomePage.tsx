@@ -8,7 +8,7 @@ import {
   OngoingResidenceProcess, 
   /* ClientDocument,  */
   DocumentStats,
-  /* JobOffer, */
+  JobOffer,
   NewResidenceApplication
 } from '../../types/types';
 import { Link } from 'react-router-dom';
@@ -18,12 +18,14 @@ interface ClientDashboardProps {
 }
 
 const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
-  /* const [isJobSearching, setIsJobSearching] = useState<boolean>(false); */
+  const [isJobSearching, setIsJobSearching] = useState<boolean>(false);
+  const [jobOffers, setJobOffers] = useState<JobOffer[]>([]);
   const [clientData, setClientData] = useState<Client | null>(null);
   const [processData, setProcessData] = useState<OngoingResidenceProcess | null>(null);
   const [newApplicationData, setNewApplicationData] = useState<NewResidenceApplication | null>(null);
   const [documentStats, setDocumentStats] = useState<DocumentStats>({ verified: 0, pending: 0, rejected: 0 });
   const [loading, setLoading] = useState<boolean>(true);
+  const [savingJobPreference, setSavingJobPreference] = useState<boolean>(false);
 
   useEffect(() => {
     console.log("ID del usuario recibido en props:", user?.id);
@@ -48,6 +50,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
         if (clientData) {
           console.log('CLIENT DATA:', clientData);
           setClientData(clientData as Client);
+          // Establecer el estado de búsqueda de trabajo según el valor en la base de datos
+          setIsJobSearching(clientData.interested_in_jobs || false);
           
           // Si el cliente ha completado el formulario, obtener datos del proceso
           if (clientData.has_completed_form) {
@@ -108,30 +112,27 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
     fetchClientData();
   }, [user]);
 
-  // Datos de ejemplo para ofertas de trabajo
-  /* const jobOffers: JobOffer[] = [
-    {
-      id: 1,
-      title: 'Logistica',
-      hourlyPay: '27 PLN',
-      city: 'Olsztyn',
-      imageUrl: '/api/placeholder/400/320',
-    },
-    {
-      id: 2,
-      title: 'Operario Fabrica Muebles',
-      hourlyPay: '24 PLN',
-      city: 'Wabzcezno',
-      imageUrl: '/api/placeholder/400/320',
-    },
-    {
-      id: 3,
-      title: 'Tapicero',
-      hourlyPay: '25 PLN',
-      city: 'Wynowo',
-      imageUrl: '/api/placeholder/400/320',
-    },
-  ]; */
+  // Cargar ofertas de trabajo activas
+  useEffect(() => {
+    const fetchJobOffers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('job_offers')
+          .select('*')
+          .eq('is_active', true);
+          
+        if (error) throw error;
+        
+        if (data) {
+          setJobOffers(data as JobOffer[]);
+        }
+      } catch (error) {
+        console.error('Error al cargar ofertas de trabajo:', error);
+      }
+    };
+    
+    fetchJobOffers();
+  }, []);
 
   // Mostrar un estado de carga mientras se obtienen los datos
   if (loading) {
@@ -180,6 +181,44 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
     
     // Fallback a los mensajes generados
     return getDefaultNextStepDescription(processData, documentStats);
+  };
+  
+  // Función para manejar el cambio en la preferencia de búsqueda de trabajo
+  const handleJobSearchToggle = async () => {
+    if (!clientData) return;
+    
+    // Evitar múltiples clics mientras se guarda
+    setSavingJobPreference(true);
+    
+    try {
+      // Actualizar el estado local primero para una UI más responsiva
+      const newValue = !isJobSearching;
+      setIsJobSearching(newValue);
+      
+      console.log('Intentando actualizar interested_in_jobs para cliente:', clientData.id);
+      console.log('Valor actual:', isJobSearching, 'Nuevo valor:', newValue);
+      
+      // Actualizar en la base de datos
+      const { data, error } = await supabase
+        .from('clients')
+        .update({ interested_in_jobs: newValue })
+        .eq('id', clientData.id)
+        .select();
+        
+      if (error) {
+        console.error('Error detallado:', error.code, error.message, error.details, error.hint);
+        throw error;
+      }
+      
+      console.log('Respuesta de Supabase:', data);
+      console.log(`Preferencia de búsqueda de trabajo actualizada a: ${newValue}`);
+    } catch (error) {
+      console.error('Error al actualizar preferencia de trabajo:', error);
+      // Revertir el cambio local si hay error
+      setIsJobSearching(!isJobSearching);
+    } finally {
+      setSavingJobPreference(false);
+    }
   };
 
   return (
@@ -319,49 +358,61 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
           </div>
         </div>
       </div>
+      
 
-      {/* Interruptor de Búsqueda de Trabajo */}
-      {/* <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Búsqueda de Trabajo</h2>
-        <div className="flex items-center">
-          <span className="mr-3 text-gray-700">
-            {isJobSearching ? 'Interesado en ofertas de trabajo' : 'No interesado en ofertas de trabajo'}
-          </span>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              value=""
-              className="sr-only peer"
-              checked={isJobSearching}
-              onChange={() => setIsJobSearching(!isJobSearching)}
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-          </label>
-        </div>
-      </div> */}
 
       {/* Ofertas de Trabajo */}
-      {/* {isJobSearching && (
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Ofertas de Trabajo</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {jobOffers.map((offer) => (
-              <div key={offer.id} className="bg-gray-100 rounded-lg p-4">
-                <img src={offer.imageUrl} alt={offer.title} className="w-full h-32 object-cover rounded-md mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900">{offer.title}</h3>
-                <p className="text-sm text-gray-600">Pago por hora: {offer.hourlyPay}</p>
-                <p className="text-sm text-gray-600">Ciudad: {offer.city}</p>
-                <button className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                  Contactar
-                </button>
-              </div>
-            ))}
+      <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">Ofertas de Trabajo</h2>
+          <div className="flex items-center">
+            <span className="mr-3 text-sm text-gray-600">
+              {isJobSearching ? 'Mostrar ofertas' : 'Ocultar ofertas'}
+            </span>
+            <button
+              type="button"
+              className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isJobSearching ? 'bg-blue-600' : 'bg-gray-200'}`}
+              onClick={handleJobSearchToggle}
+              disabled={savingJobPreference}
+            >
+              <span className="sr-only">Toggle job search</span>
+              <span
+                className={`${isJobSearching ? 'translate-x-5' : 'translate-x-0'} inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200`}
+              />
+            </button>
           </div>
-          <p className="text-sm text-gray-600">
-            Aclaración: Las ofertas laborales presentadas son proporcionadas por terceros. No promovemos ni estamos a favor de cobros por cupos, documentación o cualquier otro concepto relacionado con estas ofertas. Si te encuentras con alguna situación de este tipo, por favor infórmanos.
-          </p>
         </div>
-      )} */}
+        {isJobSearching && (
+          <>
+            {jobOffers.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {jobOffers.map((offer) => (
+                  <div key={offer.id} className="bg-gray-100 rounded-lg p-4">
+                    <img src={offer.image_url} alt={offer.title} className="w-full h-32 object-cover rounded-md mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900">{offer.title}</h3>
+                    <p className="text-sm text-gray-600">Pago por hora: {offer.hourly_pay}</p>
+                    <p className="text-sm text-gray-600">Ciudad: {offer.city}</p>
+                    <p className="text-sm text-gray-600 mb-2">Beneficios: {offer.benefits}</p>
+                    <a 
+                      href={offer.whatsapp_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-block"
+                    >
+                      Contactar por WhatsApp
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600">No hay ofertas de trabajo disponibles en este momento.</p>
+            )}
+            <p className="text-sm text-gray-600 mt-4">
+              Aclaración: Las ofertas laborales presentadas son proporcionadas por terceros. No promovemos ni estamos a favor de cobros por cupos, documentación o cualquier otro concepto relacionado con estas ofertas. Si te encuentras con alguna situación de este tipo, por favor infórmanos.
+            </p>
+          </>
+        )}
+      </div>
     </div>
   );
 };

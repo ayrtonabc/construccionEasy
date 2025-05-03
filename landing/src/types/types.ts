@@ -21,6 +21,7 @@ export interface Client {
   current_job?: string;
   current_agency?: string;
   has_completed_form?: boolean; // Añadido según la solicitud
+  interested_in_jobs?: boolean; // Indica si el cliente está interesado en recibir ofertas de trabajo
   created_at: string;
   updated_at: string;
 }
@@ -307,12 +308,28 @@ export interface DocumentStats {
   rejected: number;
 }
 
+// Interfaz para ofertas de trabajo
 export interface JobOffer {
-  id: number;
+  id: string;
   title: string;
-  hourlyPay: string;
+  hourly_pay: string;
+  benefits: string;
   city: string;
-  imageUrl: string;
+  image_url: string;
+  whatsapp_url: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Interfaz para la relación entre clientes y ofertas de trabajo
+export interface ClientJobInterest {
+  id: string;
+  client_id: string;
+  job_offer_id: string;
+  is_interested: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface FormData {
