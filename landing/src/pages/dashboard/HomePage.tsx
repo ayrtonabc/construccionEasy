@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { FileText, Clock, CheckCircle2, AlertCircle, Percent } from 'lucide-react'; // Added Percent icon
 import { supabase } from '../../lib/supabase/client';
 import { User } from "@supabase/supabase-js";
 import { 
-  /* User, */ 
   Client, 
   OngoingResidenceProcess, 
-  /* ClientDocument,  */
   DocumentStats,
   JobOffer,
   NewResidenceApplication
@@ -221,6 +219,29 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
     }
   };
 
+  // Calcular el porcentaje de progreso
+  const calculateProgress = () => {
+    let completed = 0;
+    let total = 0;
+
+    if (processData) {
+      completed = processData.completed_steps;
+      total = processData.total_steps;
+    } else if (newApplicationData) {
+      completed = newApplicationData.completed_steps;
+      total = newApplicationData.total_steps;
+    } else {
+      // Fallback using document stats if no process data
+      completed = documentStats.verified;
+      total = 6; // Assuming 6 total documents/steps as fallback
+    }
+
+    if (total === 0) return 0; // Avoid division by zero
+    return Math.round((completed / total) * 100);
+  };
+
+  const progressPercentage = calculateProgress();
+
   return (
     <div className="space-y-8">
       {/* Mensaje para usuarios que no han completado el formulario */}
@@ -271,10 +292,10 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                   Número de Caso: 
                   <span className="font-medium text-gray-900 ml-2">
                   {processData?.case_number 
-      ? processData.case_number 
-      : newApplicationData?.case_number 
-      ? newApplicationData.case_number 
-      : 'Reservado'}
+                    ? processData.case_number 
+                    : newApplicationData?.case_number 
+                    ? newApplicationData.case_number 
+                    : 'Reservado'}
                   </span>
                 </p>
                 <p className="text-sm text-gray-600">
@@ -309,7 +330,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
               </div>
             </div>
 
-            {/* Estado de Documentos */}
+            {/* Etapa Proceso */}
             <div className="bg-green-50 rounded-lg p-4">
               <div className="flex items-center mb-4">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mr-2" />
@@ -325,16 +346,21 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                       : `${documentStats.verified} de 6`}
                   </span>
                 </p>
-                <p className="text-sm text-gray-600">
-                  Pendientes: 
-                  <span className="font-medium text-red-600 ml-2">
-                  {processData
-      ? processData.total_steps - processData.completed_steps
-      : newApplicationData
-      ? newApplicationData.total_steps - newApplicationData.completed_steps
-      : 6 - documentStats.verified}
-                  </span>
-                </p>
+                {/* Display Progress Percentage */}
+                <div className="flex items-center text-sm text-gray-600">
+                   <Percent className="h-4 w-4 text-green-600 mr-1" />
+                   Progreso:
+                   <span className="font-medium text-green-700 ml-2">
+                     {progressPercentage}% completado
+                   </span>
+                 </div>
+                 {/* Progress Bar */}
+                 <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                   <div 
+                     className="bg-green-600 h-2.5 rounded-full" 
+                     style={{ width: `${progressPercentage}%` }}
+                   ></div>
+                 </div>
               </div>
             </div>
           </div>
