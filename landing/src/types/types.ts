@@ -215,12 +215,24 @@ export interface AdminClientCase {
   nextStep: string;
 }
 
-export interface AdminUrgentTask {
+// Removed AdminUrgentTask as it's replaced by AdminTask
+// export interface AdminUrgentTask {
+//   id: string;
+//   client: string;
+//   task: string;
+//   description: string;
+//   deadline: string;
+// }
+
+// New type for Admin Tasks
+export interface AdminTask {
   id: string;
-  client: string;
-  task: string;
   description: string;
-  deadline: string;
+  assignee?: 'Martyna' | 'Maciej' | 'Ayrton' | null;
+  deadline?: string | null; // Date string 'YYYY-MM-DD'
+  status: 'Pendiente' | 'Realizada';
+  created_at: string;
+  completed_at?: string | null;
 }
 
 export interface Alert {
