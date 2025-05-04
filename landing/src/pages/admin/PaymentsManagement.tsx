@@ -133,7 +133,7 @@ export default function PaymentsManagement() {
           amount: editingPayment.amount,
           payment_date: editingPayment.payment_date,
           status: editingPayment.status,
-          notes: editingPayment.notes
+          /* notes: editingPayment.notes */
         })
         .eq('id', editingPayment.id)
         .select();
@@ -331,16 +331,8 @@ export default function PaymentsManagement() {
                 </select>
               </div>
               
-              {/* Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-                <textarea
-                  value={editingPayment.notes || ''}
-                  onChange={(e) => setEditingPayment({...editingPayment, notes: e.target.value})}
-                  rows={3}
-                  className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
+              
+              
               
               <div className="flex justify-end space-x-3 mt-6">
                 <button

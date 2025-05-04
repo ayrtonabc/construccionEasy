@@ -330,7 +330,7 @@ export default function ClientsManagement() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="border rounded-lg px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white min-w-[180px] transition-all"
             >
-              <option value="">Todos los estados</option>
+              <option value="">Todos los clientes</option>
               <option value="process">En Proceso</option>
               <option value="completed">Completado</option>
             </select>
@@ -364,7 +364,7 @@ export default function ClientsManagement() {
                     Trabajo actual
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
+                    Formulario
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Fecha Inicio

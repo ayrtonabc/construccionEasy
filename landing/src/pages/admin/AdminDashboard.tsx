@@ -18,7 +18,11 @@ interface ClientProcessInfo {
   // Add fields for process editing
   caseNumber?: string;
   voivodato?: string;
-  processStage?: string; // For ongoing process
+  processStage?: "Solicitud Presentada"
+    | "Tarjeta Amarilla"
+    | "Sello Rojo"
+    | "Negativo"
+    | "Desconocido"; // For ongoing process
   completedSteps?: number;
   totalSteps?: number;
   // Add a flag to know which table the data came from
@@ -27,7 +31,7 @@ interface ClientProcessInfo {
   phoneNumber?: string;
   email?: string;
   // Placeholder for next appointment - needs backend field
-  nextAppointmentDate?: string | null;
+  next_appointment_date?: string | null;
 }
 
 export default function AdminDashboard() {
@@ -102,7 +106,7 @@ export default function AdminDashboard() {
       const { count: docsCount, error: docsError } = await supabase
         .from('client_documents')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'Pendiente');
+        .eq('status', 'pending');
 
       // Contar tareas pendientes (using the new table)
       const { count: pendingTasksCount, error: tasksError } = await supabase
@@ -320,7 +324,7 @@ export default function AdminDashboard() {
         clientInfo.id,
         clientInfo.fullName,
         'SMS enviado',
-        `Notificación enviada sobre actualización de proceso`
+        
       );
       
       setSmsSuccess(true);
@@ -404,7 +408,7 @@ export default function AdminDashboard() {
         phoneNumber: clientData.phone_number || '', // Corrected column name
         email: clientData.email || '',
         // Placeholder for next appointment - needs backend field
-        nextAppointmentDate: processInfo?.updated_at || null // Using updated_at as placeholder
+        next_appointment_date: processInfo?.next_appointment_date  // Using updated_at as placeholder
       };
 
       setClientInfo(combinedInfo);
@@ -709,7 +713,7 @@ export default function AdminDashboard() {
     
     try {
       let processUpdateData: Partial<OngoingResidenceProcess | NewResidenceApplication> = {
-        start_date: clientInfo.processStartDate || null, // Handle empty string
+        start_date: clientInfo.processStartDate , // Handle empty string
         next_steps: clientInfo.nextStepText,
         next_step_title: clientInfo.nextStepTitle,
         case_number: clientInfo.caseNumber,
@@ -717,6 +721,7 @@ export default function AdminDashboard() {
         completed_steps: clientInfo.completedSteps,
         total_steps: clientInfo.totalSteps,
         updated_at: new Date().toISOString(), // Always update timestamp
+        next_appointment_date: clientInfo.next_appointment_date || null,
       };
 
       let tableName: 'ongoing_residence_processes' | 'new_residence_applications' | null = null;
@@ -774,7 +779,7 @@ export default function AdminDashboard() {
         await logProcessUpdate(
           clientInfo.id,
           clientInfo.fullName,
-          clientInfo.processSource || 'unknown', // Pass process type
+          clientInfo.processSource || 'ongoing' || 'new' || null, // Pass process type
           updatedFields
         );
         console.log("Actividad registrada correctamente usando activity-logger");
@@ -1208,14 +1213,14 @@ export default function AdminDashboard() {
                    {isEditingProcess ? (
                      <input
                        type="date"
-                       name="nextAppointmentDate" // Needs a real field in state/DB
+                       name="next_appointment_date" // Needs a real field in state/DB
                        className="w-full p-2 border rounded"
-                       value={clientInfo.nextAppointmentDate || ''}
+                       value={clientInfo.next_appointment_date || ''}
                        onChange={handleClientInfoChange}
                      />
                    ) : (
                      <p className="p-2 bg-white rounded border border-gray-200">
-                       {clientInfo.nextAppointmentDate ? formatDueDate(clientInfo.nextAppointmentDate) : 'Sin programar'}
+                       {clientInfo.next_appointment_date ? formatDueDate(clientInfo.next_appointment_date) : 'Sin programar'}
                      </p>
                    )}
                  </div>

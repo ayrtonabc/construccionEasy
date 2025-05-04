@@ -61,6 +61,7 @@ export interface NewResidenceApplication {
   total_steps: number;
   case_number?: string;
   voivodato: string;
+  next_appointment_date?: string | null;
 }
 
 export interface OngoingResidenceProcess {
@@ -88,6 +89,7 @@ export interface OngoingResidenceProcess {
   next_steps?: string; // Añadido según la solicitud
   next_step_title?: string; // Añadido según la solicitud
   start_date?: string; // Añadido según la solicitud
+  next_appointment_date?: string | null;
 }
 
 export interface ClientDocument {

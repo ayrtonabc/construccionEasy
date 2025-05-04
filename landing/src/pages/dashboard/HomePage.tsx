@@ -322,8 +322,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                 <p className="text-sm text-gray-600">
                   Próxima Cita: 
                   <span className="font-medium text-gray-900 ml-2">
-                    {processData?.updated_at 
-                      ? formatDate(processData.updated_at) 
+                    {processData?.next_appointment_date 
+                      ? formatDate(processData.next_appointment_date) 
                       : 'Sin programar'}
                   </span>
                 </p>
