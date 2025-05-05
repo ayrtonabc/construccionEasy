@@ -12,23 +12,13 @@ import {
   RelativeDetail,
   TravelDetail,
 } from "../types/types"; // Added TravelDetail
-import {
-  ClipboardList,
-  ArrowLeft,
-  ArrowRight,
-  Send,
-  PlusCircle,
-  Trash2,
-} from "lucide-react";
+import { ClipboardList, ArrowLeft, ArrowRight, Send } from "lucide-react";
 import { supabase } from "../lib/supabase/client";
 import DuplicatePassportModal from "../components/DuplicatePassportModal";
 import { useNavigate, useLocation } from "react-router-dom"; // Import useLocation
 import { useAuth } from "../context/AuthContext"; // Import useAuth
 
-// Helper to generate unique IDs
-const generateId = () => `_${Math.random().toString(36).substr(2, 9)}`;
-
-const Form: React.FC= () => {
+const Form: React.FC = () => {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [currentStep, setCurrentStep] = useState(1);
   const [formType, setFormType] = useState<FormStep>("selection");
@@ -50,32 +40,40 @@ const Form: React.FC= () => {
   // If admin is filling, use the passed clientId's associated user_id
   // Otherwise, use the logged-in user's ID
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
-  const [targetClientId, setTargetClientId] = useState<string | null>(clientIdFromState);
+  const [targetClientId, setTargetClientId] = useState<string | null>(
+    clientIdFromState
+  );
 
   useEffect(() => {
     const determineTargetUser = async () => {
       if (isAdminFilling && targetClientId) {
         // Admin is filling for a specific client, find the client's user_id
         const { data: clientData, error } = await supabase
-          .from('clients')
-          .select('user_id')
-          .eq('id', targetClientId)
+          .from("clients")
+          .select("user_id")
+          .eq("id", targetClientId)
           .single();
         if (!error && clientData) {
           setTargetUserId(clientData.user_id);
         } else {
-          console.error("Admin filling form: Could not find user_id for client", targetClientId, error);
+          console.error(
+            "Admin filling form: Could not find user_id for client",
+            targetClientId,
+            error
+          );
           // Handle error, maybe redirect or show message
-          setSubmitError("No se pudo encontrar el usuario asociado al cliente.");
+          setSubmitError(
+            "No se pudo encontrar el usuario asociado al cliente."
+          );
         }
       } else if (loggedInUser) {
         // Normal client flow, use logged-in user's ID
         setTargetUserId(loggedInUser.id);
         // Also try to find the client ID associated with this user
         const { data: clientData, error } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('user_id', loggedInUser.id)
+          .from("clients")
+          .select("id")
+          .eq("user_id", loggedInUser.id)
           .single();
         if (!error && clientData) {
           setTargetClientId(clientData.id);
@@ -86,46 +84,44 @@ const Form: React.FC= () => {
     determineTargetUser();
   }, [isAdminFilling, targetClientId, loggedInUser]);
 
+  // Verificar si el usuario ya completó un formulario al cargar el componente
+  useEffect(() => {
+    // Skip this check if admin is filling the form
+    if (isAdminFilling) return;
 
-// Verificar si el usuario ya completó un formulario al cargar el componente
-useEffect(() => {
-  // Skip this check if admin is filling the form
-  if (isAdminFilling) return;
+    const checkUserFormStatus = async () => {
+      try {
+        if (!targetUserId) {
+          console.log("No hay ID de usuario objetivo para verificar estado");
+          return;
+        }
 
-  const checkUserFormStatus = async () => {
-    try {
-      if (!targetUserId) {
-        console.log("No hay ID de usuario objetivo para verificar estado");
-        return;
-      }
+        // Consultar si el usuario ya ha completado un formulario
+        const { data, error } = await supabase
+          .from("clients")
+          .select("has_completed_form")
+          .eq("user_id", targetUserId) // Use targetUserId
+          .limit(1);
 
-      // Consultar si el usuario ya ha completado un formulario
-      const { data, error } = await supabase
-        .from("clients")
-        .select("has_completed_form")
-        .eq("user_id", targetUserId) // Use targetUserId
-        .limit(1);
+        if (error) {
+          console.error("Error al verificar estado del formulario:", error);
+          return;
+        }
 
-      if (error) {
+        if (data && data.length > 0 && data[0].has_completed_form === true) {
+          setHasCompletedForm(true);
+          setIsDuplicateModalOpen(true);
+        }
+      } catch (error) {
         console.error("Error al verificar estado del formulario:", error);
-        return;
       }
+    };
 
-      if (data && data.length > 0 && data[0].has_completed_form === true) {
-        setHasCompletedForm(true);
-        setIsDuplicateModalOpen(true);
-      }
-    } catch (error) {
-      console.error("Error al verificar estado del formulario:", error);
+    // Only run check if we have a targetUserId and it's not admin filling
+    if (targetUserId && !isAdminFilling) {
+      checkUserFormStatus();
     }
-  };
-
-  // Only run check if we have a targetUserId and it's not admin filling
-  if (targetUserId && !isAdminFilling) {
-    checkUserFormStatus();
-  }
-}, [targetUserId, isAdminFilling]);
-
+  }, [targetUserId, isAdminFilling]);
 
   const handleInputChange = async (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -141,103 +137,6 @@ useEffect(() => {
 
   const handleRadioChange = (name: keyof FormData) => (value: boolean) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // --- Tattoo Handlers ---
-  const handleAddTattoo = () => {
-    setFormData((prev) => ({
-      ...prev,
-      tattoos: [...prev.tattoos, { id: generateId(), location: "" }],
-    }));
-  };
-
-  const handleTattooChange = (id: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tattoos: prev.tattoos.map((tattoo) =>
-        tattoo.id === id ? { ...tattoo, location: value } : tattoo
-      ),
-    }));
-  };
-
-  const handleRemoveTattoo = (id: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tattoos: prev.tattoos.filter((tattoo) => tattoo.id !== id),
-    }));
-  };
-
-  // --- Relative Handlers ---
-  const handleAddRelative = () => {
-    setFormData((prev) => ({
-      ...prev,
-      relatives: [
-        ...prev.relatives,
-        {
-          id: generateId(),
-          relationship: "",
-          full_name: "",
-          residency_status: "",
-        },
-      ],
-    }));
-  };
-
-  const handleRelativeChange = (
-    id: string,
-    field: keyof Omit<RelativeDetail, "id">,
-    value: string
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      relatives: prev.relatives.map((relative) =>
-        relative.id === id ? { ...relative, [field]: value } : relative
-      ),
-    }));
-  };
-
-  const handleRemoveRelative = (id: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      relatives: prev.relatives.filter((relative) => relative.id !== id),
-    }));
-  };
-
-  // --- Travel Handlers ---
-  const handleAddTravel = () => {
-    setFormData((prev) => ({
-      ...prev,
-      travels: [
-        ...prev.travels,
-        {
-          id: generateId(),
-          start_date: "",
-          end_date: "",
-          country: "",
-          reason: "",
-        },
-      ],
-    }));
-  };
-
-  const handleTravelChange = (
-    id: string,
-    field: keyof Omit<TravelDetail, "id">,
-    value: string
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      travels: prev.travels.map((travel) =>
-        travel.id === id ? { ...travel, [field]: value } : travel
-      ),
-    }));
-  };
-
-  const handleRemoveTravel = (id: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      travels: prev.travels.filter((travel) => travel.id !== id),
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -292,7 +191,9 @@ useEffect(() => {
         setSubmitError(null);
 
         if (!targetClientId) {
-          throw new Error("No se pudo determinar el ID del cliente para guardar los datos.");
+          throw new Error(
+            "No se pudo determinar el ID del cliente para guardar los datos."
+          );
         }
 
         // Guardar los datos en Supabase según el tipo de formulario
@@ -319,7 +220,10 @@ useEffect(() => {
   };
 
   // Función para guardar un nuevo proceso de residencia
-  const saveNewResidenceApplication = async (clientId: string, userId: string | null) => {
+  const saveNewResidenceApplication = async (
+    clientId: string,
+    userId: string | null
+  ) => {
     // 1. Update the existing client record instead of inserting
     const { error: clientError } = await supabase
       .from("clients")
@@ -334,7 +238,7 @@ useEffect(() => {
         has_completed_form: true, // Mark form as completed
         // user_id should already be set correctly from CreateClientPage if admin is filling
       })
-      .eq('id', clientId); // Use the passed clientId
+      .eq("id", clientId); // Use the passed clientId
 
     if (clientError)
       throw new Error(`Error al actualizar cliente: ${clientError.message}`);
@@ -365,7 +269,7 @@ useEffect(() => {
         // Add default values for progress if needed
         completed_steps: 0,
         total_steps: 6, // Example total steps
-        voivodato: '', // Example default
+        voivodato: "", // Example default
       });
 
     if (extendedInfoError)
@@ -395,7 +299,10 @@ useEffect(() => {
       await saveTattooDetails(clientId, formData.tattoos);
     }
 
-    if (formData.hasTraveledLastFiveYears === true && formData.travels.length > 0) {
+    if (
+      formData.hasTraveledLastFiveYears === true &&
+      formData.travels.length > 0
+    ) {
       await saveTravelDetails(clientId, formData.travels);
     }
 
@@ -405,7 +312,10 @@ useEffect(() => {
   };
 
   // Función para guardar un proceso de residencia en curso
-  const saveOngoingResidenceProcess = async (clientId: string, userId: string | null) => {
+  const saveOngoingResidenceProcess = async (
+    clientId: string,
+    userId: string | null
+  ) => {
     // 1. Update the existing client record
     const { error: clientError } = await supabase
       .from("clients")
@@ -418,7 +328,7 @@ useEffect(() => {
         current_job: formData.currentJob,
         has_completed_form: true,
       })
-      .eq('id', clientId); // Use the passed clientId
+      .eq("id", clientId); // Use the passed clientId
 
     if (clientError)
       throw new Error(`Error al actualizar cliente: ${clientError.message}`);
@@ -440,6 +350,8 @@ useEffect(() => {
         // Add default values for progress if needed
         completed_steps: 0,
         total_steps: 5, // Example total steps
+        city: formData.city,
+        zip_code: formData.zip_code,
       });
 
     if (processError)
@@ -499,7 +411,7 @@ useEffect(() => {
       file_path: filePath,
       file_name: file.name, // Store original file name
       // user_id: userId, // Associate with the target user
-      status: 'Pendiente', // Default status
+      status: "Pendiente", // Default status
       upload_date: new Date().toISOString(),
     });
 
@@ -592,17 +504,20 @@ useEffect(() => {
         ¡Registro Completado!
       </h2>
       <p className="mt-4 text-lg text-gray-600">
-        La información del cliente ha sido {isAdminFilling ? 'guardada' : 'enviada'} correctamente.
-        {isAdminFilling ? ' Puede gestionar al cliente ahora.' : ' Nos pondremos en contacto pronto.'}
+        La información del cliente ha sido{" "}
+        {isAdminFilling ? "guardada" : "enviada"} correctamente.
+        {isAdminFilling
+          ? " Puede gestionar al cliente ahora."
+          : " Nos pondremos en contacto pronto."}
       </p>
       <button
-      onClick={() => {
-        // Redirect admin to client list, client to their dashboard
-        navigate(isAdminFilling ? "/admin/clientes" : "/dashboard");
-      }}
+        onClick={() => {
+          // Redirect admin to client list, client to their dashboard
+          navigate(isAdminFilling ? "/admin/clientes" : "/dashboard");
+        }}
         className="mt-8 inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
       >
-        {isAdminFilling ? 'Volver a Clientes' : 'Ir al Panel'}
+        {isAdminFilling ? "Volver a Clientes" : "Ir al Panel"}
       </button>
     </div>
   );
@@ -731,7 +646,7 @@ useEffect(() => {
                 value={formData.dateOfBirth}
                 onChange={handleInputChange}
               />
-               <FormInput
+              <FormInput
                 label="Correo Electrónico"
                 type="email"
                 name="email"
@@ -751,7 +666,7 @@ useEffect(() => {
         );
       // Add cases for other steps (2, 3, 4, 5) similar to the original code
       // ...
-       case 2: // Información Familiar (Simplified)
+      case 2: // Información Familiar (Simplified)
         return renderFormSection(
           "Información Familiar",
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -769,7 +684,7 @@ useEffect(() => {
               value={formData.motherName}
               onChange={handleInputChange}
             />
-             <FormSelect
+            <FormSelect
               label="Estado Civil"
               name="maritalStatus"
               value={formData.maritalStatus}
@@ -798,7 +713,7 @@ useEffect(() => {
             />
           </div>
         );
-       case 3: // Información de Contacto (Simplified)
+      case 3: // Información de Contacto (Simplified)
         return renderFormSection(
           "Información de Contacto",
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -825,26 +740,35 @@ useEffect(() => {
               value={formData.zipCode}
               onChange={handleInputChange}
             />
+            <FormInput
+              label="Número PESEL (opcional)"
+              type="text"
+              name="peselNumber"
+              value={formData.peselNumber}
+              onChange={handleInputChange}
+              placeholder="Ingrese su número PESEL si lo tiene"
+              required={false}
+            />
           </div>
         );
-       case 4: // Información de Viaje y Trabajo (Simplified)
+      case 4: // Información de Viaje y Trabajo (Simplified)
         return renderFormSection(
           "Información de Viaje y Trabajo",
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <FormInput
-                label="Trabajo Actual"
-                type="text"
-                name="currentJob"
-                value={formData.currentJob}
-                onChange={handleInputChange}
-              />
-              <FormInput
-                label="Nombre de la Agencia Actual"
-                type="text"
-                name="currentAgencyName"
-                value={formData.currentAgencyName}
-                onChange={handleInputChange}
-              />
+            <FormInput
+              label="Trabajo Actual"
+              type="text"
+              name="currentJob"
+              value={formData.currentJob}
+              onChange={handleInputChange}
+            />
+            <FormInput
+              label="Nombre de la Agencia Actual"
+              type="text"
+              name="currentAgencyName"
+              value={formData.currentAgencyName}
+              onChange={handleInputChange}
+            />
           </div>
         );
       case 5: // Documentos
@@ -869,7 +793,7 @@ useEffect(() => {
 
   // Simplified renderOngoingProcessForm for example
   const renderOngoingProcessForm = () => {
-     switch (currentStep) {
+    switch (currentStep) {
       case 1: // Información Personal
         return renderFormSection(
           "Información Personal",
@@ -881,7 +805,7 @@ useEffect(() => {
               value={formData.fullName}
               onChange={handleInputChange}
             />
-             <FormInput
+            <FormInput
               label="Apellidos" // Added last name for ongoing
               type="text"
               name="lastName"
@@ -963,10 +887,11 @@ useEffect(() => {
               options={[
                 { value: "", label: "Seleccione..." },
                 { value: "submitted", label: "Solicitud Presentada" },
-                { value: "yellow-card", label: "Tarjeta Amarilla" },
-                { value: "red-stamp", label: "Sello Rojo" },
-                { value: "negative", label: "Negativo" },
-                { value: "unknown", label: "Desconocido" },
+                { value: "yellow-card", label: "Esperando cita para huellas" },
+                { value: "fingerprint", label: "Esperando resolución" },
+                { value: "red-stamp", label: "Proceso completado" },
+                { value: "negative", label: "Solicitud rechazada" },
+                { value: "unknown", label: "Documentación siendo procesada" },
               ]}
             />
             <FormInput
@@ -1007,11 +932,34 @@ useEffect(() => {
               />
             </div>
             <FormInput
+              label="Ciudad"
+              type="text"
+              name="city"
+              value={formData.city}
+              onChange={handleInputChange}
+            />
+            <FormInput
+              label="Código Postal"
+              type="text"
+              name="zip_code"
+              value={formData.zip_code}
+              onChange={handleInputChange}
+            />
+            <FormInput
               label="Correo Electrónico"
               type="email"
               name="email"
               value={formData.email}
               onChange={handleInputChange}
+            />
+            <FormInput
+              label="Número PESEL (opcional)"
+              type="text"
+              name="peselNumber"
+              value={formData.peselNumber}
+              onChange={handleInputChange}
+              placeholder="Ingrese su número PESEL si lo tiene"
+              required={false}
             />
           </div>
         );
@@ -1057,10 +1005,14 @@ useEffect(() => {
         <div className="text-center mb-10">
           <ClipboardList className="mx-auto h-12 w-12 text-blue-600 mb-4" />
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            {isAdminFilling ? `Formulario para Cliente ID: ${targetClientId}` : 'Registro de Proceso de Residencia'}
+            {isAdminFilling
+              ? `Formulario para Cliente ID: ${targetClientId}`
+              : "Registro de Proceso de Residencia"}
           </h1>
           <p className="mt-3 text-lg text-gray-600">
-            {isAdminFilling ? 'Complete la información del cliente.' : 'Complete los pasos para registrar su proceso.'}
+            {isAdminFilling
+              ? "Complete la información del cliente."
+              : "Complete los pasos para registrar su proceso."}
           </p>
         </div>
 
@@ -1084,10 +1036,12 @@ useEffect(() => {
 
           {submitSuccess ? (
             renderSuccessMessage()
-          ) :  (
+          ) : (
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Conditionally render selection screen */}
-              {formType === "selection" && !isAdminFilling && renderSelectionScreen()}
+              {formType === "selection" &&
+                !isAdminFilling &&
+                renderSelectionScreen()}
               {formType === "new" && renderNewProcessForm()}
               {formType === "ongoing" && renderOngoingProcessForm()}
 
@@ -1143,8 +1097,8 @@ useEffect(() => {
                         Procesando...
                       </>
                     ) : isPassportDuplicate ? (
-                        "Proceso existente"
-                      ) : currentStep === getTotalSteps() ? (
+                      "Proceso existente"
+                    ) : currentStep === getTotalSteps() ? (
                       <>
                         Enviar{" "}
                         <Send className="ml-2 h-5 w-5" aria-hidden="true" />
@@ -1171,9 +1125,8 @@ useEffect(() => {
           </p>
         </footer>
       </div>
-
     </div>
   );
-}
+};
 
 export default Form;

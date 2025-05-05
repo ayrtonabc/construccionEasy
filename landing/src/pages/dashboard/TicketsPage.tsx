@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TicketCheck, MessageSquare, X, Paperclip, Send, ArrowLeft, Ticket } from 'lucide-react';
+import { TicketCheck, MessageSquare, X, Paperclip, Send, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase/client'
 import { useAuth } from '../../context/AuthContext';
 import { v4 as uuidv4 } from 'uuid';

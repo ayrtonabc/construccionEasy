@@ -194,70 +194,165 @@ export default function AdminTickets() {
   const handleSendMessage = async () => {
     if (!newMessage.trim() && attachments.length === 0) return;
     if (!selectedTicket) return;
-    /* if (!user?.id) return; */
+    
+    // Verificamos que el usuario exista
+    if (!user?.id) {
+      setError("Error: No se pudo identificar al usuario. Por favor, inicia sesión nuevamente.");
+      return;
+    }
 
     setSending(true);
     try {
-      // Primero subimos los archivos adjuntos si existen
-      const uploadedFiles = [];
+      // Primero verificamos que el usuario exista en la base de datos
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", user.id)
+        .single();
 
-      for (const file of attachments) {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random()
-          .toString(36)
-          .substring(2, 15)}.${fileExt}`;
-        const filePath = `ticket_attachments/${selectedTicket}/${fileName}`;
-
-        const { error: uploadError, data } = await supabase.storage
-          .from("attachments")
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        if (data) {
-          uploadedFiles.push({
-            name: file.name,
-            path: filePath,
-          });
+      if (userError || !userData) {
+        // Si el usuario no existe en la tabla de usuarios, usamos el ID del cliente
+        // asociado con el ticket como remitente
+        const ticket = tickets.find(t => t.id === selectedTicket);
+        
+        if (!ticket) {
+          throw new Error("No se pudo encontrar el ticket seleccionado");
         }
+        
+        // Obtenemos el user_id asociado con el cliente
+        const { data: clientData, error: clientError } = await supabase
+          .from("clients")
+          .select("user_id")
+          .eq("id", ticket.client_id)
+          .single();
+          
+        if (clientError || !clientData?.user_id) {
+          throw new Error("No se pudo determinar un remitente válido para el mensaje");
+        }
+
+        // Primero subimos los archivos adjuntos si existen
+        const uploadedFiles = [];
+
+        for (const file of attachments) {
+          const fileExt = file.name.split(".").pop();
+          const fileName = `${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 15)}.${fileExt}`;
+          const filePath = `ticket_attachments/${selectedTicket}/${fileName}`;
+
+          const { error: uploadError, data } = await supabase.storage
+            .from("attachments")
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          if (data) {
+            uploadedFiles.push({
+              name: file.name,
+              path: filePath,
+            });
+          }
+        }
+
+        // Creamos el mensaje usando el user_id del cliente como sender_id
+        const messageToSend = {
+          ticket_id: selectedTicket,
+          sender_id: clientData.user_id, // Usamos el user_id del cliente
+          message: newMessage,
+          is_from_admin: true, // Pero marcamos que es del admin
+          created_at: new Date().toISOString(),
+          attachments:
+            uploadedFiles.length > 0 ? JSON.stringify(uploadedFiles) : null,
+        };
+
+        // Guardamos el mensaje en la base de datos
+        const { data: newMessageData, error: messageError } = await supabase
+          .from("ticket_messages")
+          .insert([messageToSend])
+          .select();
+
+        if (messageError) throw messageError;
+
+        // Actualizamos el estado del ticket a "Respondido"
+        await handleStatusChange(selectedTicket, "Respondido");
+
+        // Actualizamos la interfaz
+        if (newMessageData && newMessageData.length > 0) {
+          setMessages((prev) => ({
+            ...prev,
+            [selectedTicket]: [
+              ...(prev[selectedTicket] || []),
+              newMessageData[0],
+            ],
+          }));
+        }
+
+        // Limpiamos el formulario
+        setNewMessage("");
+        setAttachments([]);
+      } else {
+        // Si el usuario existe, procedemos normalmente
+        // Subimos los archivos adjuntos si existen
+        const uploadedFiles = [];
+
+        for (const file of attachments) {
+          const fileExt = file.name.split(".").pop();
+          const fileName = `${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 15)}.${fileExt}`;
+          const filePath = `ticket_attachments/${selectedTicket}/${fileName}`;
+
+          const { error: uploadError, data } = await supabase.storage
+            .from("attachments")
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          if (data) {
+            uploadedFiles.push({
+              name: file.name,
+              path: filePath,
+            });
+          }
+        }
+
+        // Creamos el mensaje
+        const messageToSend = {
+          ticket_id: selectedTicket,
+          sender_id: user.id,
+          message: newMessage,
+          is_from_admin: isAdmin,
+          created_at: new Date().toISOString(),
+          attachments:
+            uploadedFiles.length > 0 ? JSON.stringify(uploadedFiles) : null,
+        };
+
+        // Guardamos el mensaje en la base de datos
+        const { data: newMessageData, error: messageError } = await supabase
+          .from("ticket_messages")
+          .insert([messageToSend])
+          .select();
+
+        if (messageError) throw messageError;
+
+        // Actualizamos el estado del ticket a "Respondido"
+        await handleStatusChange(selectedTicket, "Respondido");
+
+        // Actualizamos la interfaz
+        if (newMessageData && newMessageData.length > 0) {
+          setMessages((prev) => ({
+            ...prev,
+            [selectedTicket]: [
+              ...(prev[selectedTicket] || []),
+              newMessageData[0],
+            ],
+          }));
+        }
+
+        // Limpiamos el formulario
+        setNewMessage("");
+        setAttachments([]);
       }
-
-      // Creamos el mensaje
-      const messageToSend = {
-        ticket_id: selectedTicket,
-        sender_id: user?.id,
-        message: newMessage,
-        is_from_admin: isAdmin,
-        created_at: new Date().toISOString(),
-        attachments:
-          uploadedFiles.length > 0 ? JSON.stringify(uploadedFiles) : null,
-      };
-
-      // Guardamos el mensaje en la base de datos
-      const { data: newMessageData, error: messageError } = await supabase
-        .from("ticket_messages")
-        .insert([messageToSend])
-        .select();
-
-      if (messageError) throw messageError;
-
-      // Actualizamos el estado del ticket a "Respondido"
-      await handleStatusChange(selectedTicket, "Respondido");
-
-      // Actualizamos la interfaz
-      if (newMessageData && newMessageData.length > 0) {
-        setMessages((prev) => ({
-          ...prev,
-          [selectedTicket]: [
-            ...(prev[selectedTicket] || []),
-            newMessageData[0],
-          ],
-        }));
-      }
-
-      // Limpiamos el formulario
-      setNewMessage("");
-      setAttachments([]);
     } catch (err) {
       console.error("Error enviando mensaje:", err);
       setError("No se pudo enviar el mensaje. Por favor, intenta de nuevo.");

@@ -24,6 +24,7 @@ export interface Client {
   interested_in_jobs?: boolean; // Indica si el cliente está interesado en recibir ofertas de trabajo
   created_at: string;
   updated_at: string;
+  pesel_number?: string; // Añadido según la solicitud
 }
 
 export interface NewResidenceApplication {
@@ -72,11 +73,13 @@ export interface OngoingResidenceProcess {
   has_work_permit: boolean;
   voivodato: string;
   process_stage:
-    | "Solicitud Presentada"
-    | "Tarjeta Amarilla"
-    | "Sello Rojo"
-    | "Negativo"
-    | "Desconocido";
+    | 'Solicitud Presentada'
+    | 'Presentacion Solicitud'
+    | 'Tengo Carta Amarilla'
+    | 'Ya tuve cita huellas'
+    | 'Sello Rojo'
+    | 'Negativa'
+    | 'Desconozco';
   case_number?: string;
   current_address: string;
   whatsapp_number: string;
@@ -405,6 +408,8 @@ export interface FormData {
   // Ongoing Process - Contact Information (some overlap with New)
   whatsappNumber: string;
   currentAddress: string;
+  zip_code: string; // Añadido para coincidir con OngoingResidenceProcess
+  city_ongoing_residence: string; // Añadido para coincidir con OngoingResidenceProcess
 
   // Ongoing Process - Documents
   yellowCard: File | null;
@@ -450,6 +455,8 @@ export interface ProfileData {
   hasWorkPermit: boolean;
   processStage: string;
   caseNumber: string;
+  cityOngoingResidence: string;
+  zipCodeOngoingResidence: string;
 }
 
 export const initialFormData: FormData = {
@@ -493,4 +500,6 @@ export const initialFormData: FormData = {
   whatsappNumber: "",
   currentAddress: "",
   yellowCard: null,
+  zip_code: "", // Añadido para coincidir con OngoingResidenceProcess
+  city_ongoing_residence: "", // Añadido para coincidir con OngoingResidenceProcess
 };

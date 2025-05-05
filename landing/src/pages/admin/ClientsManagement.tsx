@@ -8,7 +8,6 @@ import {
   Mail,
   Phone,
   Briefcase,
-  MapPin,
   AlertCircle,
   CheckCircle,
   UserPlus, // Import UserPlus icon
@@ -535,6 +534,12 @@ export default function ClientsManagement() {
                       {selectedClient.date_of_birth}
                     </span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Número PESEL:</span>
+                    <span className="font-medium">
+                      {selectedClient.pesel_number || "No especificado"}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -925,6 +930,19 @@ export default function ClientsManagement() {
                     type="tel"
                     name="phone_number"
                     value={editForm.phone_number}
+                    onChange={handleEditChange}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-2 px-3 border"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Número PESEL
+                  </label>
+                  <input
+                    type="text"
+                    name="pesel_number"
+                    value={editForm.pesel_number}
                     onChange={handleEditChange}
                     className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm py-2 px-3 border"
                     required

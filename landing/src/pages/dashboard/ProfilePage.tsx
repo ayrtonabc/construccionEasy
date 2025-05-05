@@ -74,6 +74,8 @@ export default function ProfilePage() {
     hasWorkPermit: false,
     processStage: "",
     caseNumber: "",
+    cityOngoingResidence: "",
+    zipCodeOngoingResidence: "",
   };
 
   const [profile, setProfile] = useState<ProfileData>(initialProfile);
@@ -141,6 +143,7 @@ export default function ProfilePage() {
         phoneNumber: clientData.phone_number || "",
         currentJob: clientData.current_job || "",
         currentAgency: clientData.current_agency || "",
+        peselNumber: clientData.pesel_number || "",
 
         // Contact info (from various sources)
         phone: clientData.phone_number || "",
@@ -155,7 +158,7 @@ export default function ProfilePage() {
 
         // New residence application info
         placeOfBirth: newResidenceData?.place_of_birth || "",
-        peselNumber: newResidenceData?.pesel_number || "",
+        /* peselNumber: newResidenceData?.pesel_number || "", */
         height: newResidenceData?.height_cm
           ? String(newResidenceData.height_cm)
           : "",
@@ -165,8 +168,13 @@ export default function ProfilePage() {
         motherName: newResidenceData?.mother_name || "",
         maritalStatus: newResidenceData?.marital_status || "",
         educationLevel: newResidenceData?.education_level || "",
-        city: newResidenceData?.city || "",
-        zipCode: newResidenceData?.zip_code || "",
+        city: ongoingProcessData
+          ? ongoingProcessData.city_ongoing_residence || ""
+          : newResidenceData?.city || "",
+        zipCode: ongoingProcessData
+          ? ongoingProcessData.zip_code || ""
+          : newResidenceData?.zip_code || "",
+
         euEntryDate: newResidenceData?.eu_entry_date || "",
         polandArrivalDate: newResidenceData?.poland_arrival_date || "",
         transportMethod: newResidenceData?.transport_method || "",
@@ -180,6 +188,8 @@ export default function ProfilePage() {
         hasWorkPermit: ongoingProcessData?.has_work_permit || false,
         processStage: ongoingProcessData?.process_stage || "",
         caseNumber: ongoingProcessData?.case_number || "",
+        cityOngoingResidence: ongoingProcessData?.city_ongoing_residence || "",
+        zipCodeOngoingResidence: ongoingProcessData?.zip_code || "",
       };
 
       setProfile(combinedProfile);
@@ -238,7 +248,10 @@ export default function ProfilePage() {
   };
 
   const handleSave = async () => {
+    console.log("Botón de guardar presionado");
+
     if (!validateForm()) {
+      console.log("Validación fallida", validation);
       return;
     }
 
@@ -279,7 +292,34 @@ export default function ProfilePage() {
           .eq("client_id", clientData.id)
           .maybeSingle();
 
-      // If new residence application exists, update it
+      // Check if ongoing process exists
+      const { data: ongoingProcessExists /* , error: checkOngoingError */ } =
+        await supabase
+          .from("ongoing_residence_processes")
+          .select("id")
+          .eq("client_id", clientData.id)
+          .maybeSingle();
+
+      // Si existe un proceso en curso, actualizamos esos datos primero
+      if (ongoingProcessExists) {
+        const ongoingProcessUpdateData = {
+          whatsapp_number: editedProfile.whatsapp,
+          current_address: editedProfile.address,
+          city_ongoing_residence: editedProfile.cityOngoingResidence,
+          zip_code: editedProfile.zipCodeOngoingResidence,
+          updated_at: new Date().toISOString(),
+        };
+
+        const { error: updateOngoingError } = await supabase
+          .from("ongoing_residence_processes")
+          .update(ongoingProcessUpdateData)
+          .eq("client_id", clientData.id);
+
+        if (updateOngoingError) throw updateOngoingError;
+      }
+
+      // Si existe solicitud de nueva residencia y NO hay proceso en curso,
+      // actualizamos esos datos
       if (newResidenceExists) {
         const newResidenceUpdateData = {
           address: editedProfile.address,
@@ -294,30 +334,6 @@ export default function ProfilePage() {
           .eq("client_id", clientData.id);
 
         if (updateNewResidenceError) throw updateNewResidenceError;
-      }
-
-      // Check if ongoing process exists
-      const { data: ongoingProcessExists /* , error: checkOngoingError */ } =
-        await supabase
-          .from("ongoing_residence_processes")
-          .select("id")
-          .eq("client_id", clientData.id)
-          .maybeSingle();
-
-      // If ongoing process exists, update it
-      if (ongoingProcessExists) {
-        const ongoingProcessUpdateData = {
-          whatsapp_number: editedProfile.whatsapp,
-          current_address: editedProfile.address,
-          updated_at: new Date().toISOString(),
-        };
-
-        const { error: updateOngoingError } = await supabase
-          .from("ongoing_residence_processes")
-          .update(ongoingProcessUpdateData)
-          .eq("client_id", clientData.id);
-
-        if (updateOngoingError) throw updateOngoingError;
       }
 
       // Refresh profile data
@@ -688,7 +704,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {profile.city !== undefined && (
+            {!profile.processStage && profile.city !== undefined && (
               <div className="flex items-start">
                 <MapPin className="h-5 w-5 text-gray-400 mr-3 mt-1" />
                 <div className="flex-1">
@@ -719,8 +735,7 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
-
-            {profile.zipCode !== undefined && (
+            {!profile.processStage && profile.zipCode !== undefined && (
               <div className="flex items-start">
                 <MapPin className="h-5 w-5 text-gray-400 mr-3 mt-1" />
                 <div className="flex-1">
@@ -751,7 +766,85 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
-
+            {/* Para usuarios con proceso en curso */}
+            {profile.processStage &&
+              profile.cityOngoingResidence !== undefined && (
+                <div className="flex items-start">
+                  <MapPin className="h-5 w-5 text-gray-400 mr-3 mt-1" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-500">
+                      Ciudad (Proceso en Curso)
+                    </p>
+                    {isEditing ? (
+                      <div>
+                        <input
+                          type="text"
+                          value={editedProfile.cityOngoingResidence}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "cityOngoingResidence",
+                              e.target.value
+                            )
+                          }
+                          className={`mt-1 block w-full rounded-md shadow-sm focus:ring-2 focus:ring-opacity-50 transition-all duration-200 ${
+                            validation.cityOngoingResidence
+                              ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                              : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                          }`}
+                        />
+                        {validation.cityOngoingResidence && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {validation.cityOngoingResidence}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="font-medium">
+                        {profile.cityOngoingResidence}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            {profile.processStage &&
+              profile.zipCodeOngoingResidence !== undefined && (
+                <div className="flex items-start">
+                  <MapPin className="h-5 w-5 text-gray-400 mr-3 mt-1" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-500">
+                      Código Postal (Proceso en Curso)
+                    </p>
+                    {isEditing ? (
+                      <div>
+                        <input
+                          type="text"
+                          value={editedProfile.zipCodeOngoingResidence}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "zipCodeOngoingResidence",
+                              e.target.value
+                            )
+                          }
+                          className={`mt-1 block w-full rounded-md shadow-sm focus:ring-2 focus:ring-opacity-50 transition-all duration-200 ${
+                            validation.zipCodeOngoingResidence
+                              ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                              : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                          }`}
+                        />
+                        {validation.zipCodeOngoingResidence && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {validation.zipCodeOngoingResidence}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="font-medium">
+                        {profile.zipCodeOngoingResidence}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             <div className="flex items-center">
               <MapPin className="h-5 w-5 text-gray-400 mr-3" />
               <div className="flex-1">

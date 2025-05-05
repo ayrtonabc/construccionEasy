@@ -1,5 +1,5 @@
 import { useState, useEffect, ChangeEvent } from 'react';
-import { Users, Clock, CheckCircle2, AlertTriangle, FileText, Save, Briefcase, Edit, X, Plus, ListChecks, CheckSquare, Calendar, RefreshCw, Search } from 'lucide-react'; // Added icons for tasks
+import { Users, Clock, CheckCircle2, AlertTriangle, FileText, Save, Edit, X, Plus, CheckSquare, Calendar, RefreshCw, Search } from 'lucide-react'; // Added icons for tasks
 import { supabase } from "../../lib/supabase/client";
 import { Client, AdminStats, AdminActivityItem, AdminTask, OngoingResidenceProcess, NewResidenceApplication } from "../../types/types"; // Updated types
 // Importar el módulo de registro de actividades
@@ -19,10 +19,12 @@ interface ClientProcessInfo {
   caseNumber?: string;
   voivodato?: string;
   processStage?: "Solicitud Presentada"
-    | "Tarjeta Amarilla"
+    | "Presentacion Solicitud"
+    | "Tengo Carta Amarilla"
+    | "Ya tuve cita huellas"
     | "Sello Rojo"
-    | "Negativo"
-    | "Desconocido"; // For ongoing process
+    | "Negativa"
+    | "Desconozco"
   completedSteps?: number;
   totalSteps?: number;
   // Add a flag to know which table the data came from
@@ -439,7 +441,7 @@ export default function AdminDashboard() {
   }, [searchTerm, processTypeFilter, voivodatoFilter]);
   
   // Validación en tiempo real para los campos del proceso
-  const validateProcessField = (field: string, value: any): string | null => {
+  /* const validateProcessField = (field: string, value: any): string | null => {
     switch(field) {
       case 'caseNumber':
         return value && !/^[A-Za-z0-9-]+$/.test(value) 
@@ -456,7 +458,7 @@ export default function AdminDashboard() {
       default:
         return null;
     }
-  };
+  }; */
 
   // --- Task Management Functions ---
   const loadAdminTasks = async (): Promise<void> => {
@@ -1085,11 +1087,11 @@ export default function AdminDashboard() {
                        type="date"
                        name="processStartDate"
                        className="w-full p-2 border rounded"
-                       value={clientInfo.processStartDate || ''}
+                       value={clientInfo.processStartDate || '' }
                        onChange={handleClientInfoChange}
                      />
                    ) : (
-                     <p className="p-2 bg-white rounded border border-gray-200">{clientInfo.processStartDate || 'N/A'}</p>
+                     <p className="p-2 bg-white rounded border border-gray-200">{formatDueDate(clientInfo.processStartDate || 'N/A') }</p>
                    )}
                  </div>
 

@@ -1,4 +1,5 @@
-iimport React, { useState, useEffect } from "react";
+
+import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase/client";
 import { Client, ClientDocument } from "../../types/types";
 import {

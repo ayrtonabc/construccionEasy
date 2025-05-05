@@ -324,7 +324,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ user }) => {
                   <span className="font-medium text-gray-900 ml-2">
                     {processData?.next_appointment_date 
                       ? formatDate(processData.next_appointment_date) 
-                      : 'Sin programar'}
+                      : newApplicationData?.next_appointment_date ? formatDate(newApplicationData?.next_appointment_date)  : 'Sin programar'}
                   </span>
                 </p>
               </div>
@@ -471,15 +471,15 @@ function getDefaultNextStepMessage(processData: OngoingResidenceProcess | null, 
   }
   
   switch(processData.process_stage) {
-    case 'Solicitud Presentada':
+    case 'Presentacion Solicitud':
       return "Esperar confirmación de recepción";
-    case 'Tarjeta Amarilla':
+    case 'Tengo Carta Amarilla':
       return "Cita para huellas";
-    /* case 'Sello Rojo':
-      return "Esperar resolución"; */
+    case 'Ya tuve cita huellas':
+      return "Esperar resolución";
     case 'Sello Rojo':
       return "Proceso completo";
-    case 'Negativo':
+    case 'Negativa':
       return "Proceso con resultado negativo";
     default:
       if (documentStats.pending > 0) {
@@ -496,15 +496,15 @@ function getDefaultNextStepDescription(processData: OngoingResidenceProcess | nu
   }
   
   switch(processData.process_stage) {
-    case 'Solicitud Presentada':
+    case 'Presentacion Solicitud':
       return "Estamos esperando que las autoridades confirmen la recepción de su solicitud.";
-    case 'Tarjeta Amarilla':
+    case 'Tengo Carta Amarilla':
       return "Pendiente de asignación. Se le notificará cuando la cita esté programada.";
-    /* case 'Ya tuve cita huellas':
-      return "Su caso está siendo revisado por las autoridades. Le informaremos cuando haya novedades."; */
+    case 'Ya tuve cita huellas':
+      return "Su caso está siendo revisado por las autoridades. Le informaremos cuando haya novedades.";
     case 'Sello Rojo':
       return "¡Felicidades! Su proceso de residencia ha sido completado exitosamente.";
-    case 'Negativo':
+    case 'Negativa':
       return "Su solicitud ha sido rechazada. Contacte a nuestro equipo para analizar las opciones disponibles.";
     default:
       if (documentStats.pending > 0) {
