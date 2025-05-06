@@ -103,11 +103,11 @@ export async function logProfileUpdate(
       break;
     case "contact":
       activityType = "Actualización de información de contacto";
-      description = `${client.full_name} actualizó su información de contacto: ${fieldNames}`;
+      description = `${client.email} actualizó su información de contacto: ${fieldNames}`;
       break;
     case "work":
       activityType = "Actualización de información laboral";
-      description = `${client.full_name} actualizó su información laboral: ${fieldNames}`;
+      description = `${client.current_job} actualizó su información laboral: ${fieldNames}`;
       break;
   }
 
