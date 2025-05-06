@@ -6,6 +6,10 @@ import { Client, AdminStats, AdminActivityItem, AdminTask, OngoingResidenceProce
 import {
   logUserActivity,
   logProcessUpdate,
+  logPersonalInfoUpdate,
+  logContactInfoUpdate,
+  logWorkInfoUpdate,
+  logProfileUpdate,
 } from "../../lib/activity-logger";
 
 // Define a more comprehensive type for clientInfo state
@@ -714,88 +718,167 @@ export default function AdminDashboard() {
     setSaving(true);
     
     try {
-      let processUpdateData: Partial<OngoingResidenceProcess | NewResidenceApplication> = {
-        start_date: clientInfo.processStartDate , // Handle empty string
-        next_steps: clientInfo.nextStepText,
-        next_step_title: clientInfo.nextStepTitle,
-        case_number: clientInfo.caseNumber,
-        voivodato: clientInfo.voivodato,
-        completed_steps: clientInfo.completedSteps,
-        total_steps: clientInfo.totalSteps,
-        updated_at: new Date().toISOString(), // Always update timestamp
-        next_appointment_date: clientInfo.next_appointment_date || null,
-      };
-
-      let tableName: 'ongoing_residence_processes' | 'new_residence_applications' | null = null;
-      let processId: string | null = null;
-
-      // Determine which table to update based on processSource
-      if (clientInfo.processSource === 'ongoing') {
-        tableName = 'ongoing_residence_processes';
-        processUpdateData = {
-          ...processUpdateData,
-          process_stage: clientInfo.processStage, // Only for ongoing
+      // Determinar qué tipo de información se está actualizando
+      const updateType = determineUpdateType(); // Esta función la añadiremos
+      
+      if (updateType === 'process') {
+        // El código original para actualizar proceso
+        let processUpdateData: Partial<OngoingResidenceProcess | NewResidenceApplication> = {
+          start_date: clientInfo.processStartDate, // Handle empty string
+          next_steps: clientInfo.nextStepText,
+          next_step_title: clientInfo.nextStepTitle,
+          case_number: clientInfo.caseNumber,
+          voivodato: clientInfo.voivodato,
+          completed_steps: clientInfo.completedSteps,
+          total_steps: clientInfo.totalSteps,
+          updated_at: new Date().toISOString(), // Always update timestamp
+          next_appointment_date: clientInfo.next_appointment_date || null,
         };
-        // Fetch the ID for the ongoing process
-        const { data: ongoingData, error: ongoingErr } = await supabase
-          .from(tableName)
-          .select('id')
-          .eq('client_id', clientInfo.id)
-          .single();
-        if (ongoingErr || !ongoingData) throw new Error("Could not find ongoing process ID to update.");
-        processId = ongoingData.id;
-
-      } else if (clientInfo.processSource === 'new') {
-        tableName = 'new_residence_applications';
-         // Fetch the ID for the new application
-         const { data: newData, error: newErr } = await supabase
-         .from(tableName)
-         .select('id')
-         .eq('client_id', clientInfo.id)
-         .single();
-       if (newErr || !newData) throw new Error("Could not find new application ID to update.");
-       processId = newData.id;
-      }
-
-      // Perform the update if a table and ID were determined
-      if (tableName && processId) {
-        const { error: updateError } = await supabase
-          .from(tableName)
-          .update(processUpdateData)
-          .eq('id', processId); // Use the specific process ID
-
-        if (updateError) {
-          console.error(`Error updating ${tableName}:`, updateError);
-          throw updateError;
+  
+        let tableName: 'ongoing_residence_processes' | 'new_residence_applications' | null = null;
+        let processId: string | null = null;
+  
+        // Determine which table to update based on processSource
+        if (clientInfo.processSource === 'ongoing') {
+          tableName = 'ongoing_residence_processes';
+          processUpdateData = {
+            ...processUpdateData,
+            process_stage: clientInfo.processStage, // Only for ongoing
+          };
+          // Fetch the ID for the ongoing process
+          const { data: ongoingData, error: ongoingErr } = await supabase
+            .from(tableName)
+            .select('id')
+            .eq('client_id', clientInfo.id)
+            .single();
+          if (ongoingErr || !ongoingData) throw new Error("Could not find ongoing process ID to update.");
+          processId = ongoingData.id;
+  
+        } else if (clientInfo.processSource === 'new') {
+          tableName = 'new_residence_applications';
+          // Fetch the ID for the new application
+          const { data: newData, error: newErr } = await supabase
+            .from(tableName)
+            .select('id')
+            .eq('client_id', clientInfo.id)
+            .single();
+          if (newErr || !newData) throw new Error("Could not find new application ID to update.");
+          processId = newData.id;
+        }
+  
+        // Perform the update if a table and ID were determined
+        if (tableName && processId) {
+          const { error: updateError } = await supabase
+            .from(tableName)
+            .update(processUpdateData)
+            .eq('id', processId); // Use the specific process ID
+  
+          if (updateError) {
+            console.error(`Error updating ${tableName}:`, updateError);
+            throw updateError;
+          }
+        } else {
+          // Handle case where no process exists yet - maybe create one?
+          // For now, we'll just log a warning.
+          console.warn("No existing process found for client to update:", clientInfo.id);
+          // Optionally, create a new record here if desired
+        }
+        
+        // Log activity for process update
+        const updatedFields = Object.keys(processUpdateData).filter(key => key !== 'updated_at'); // Get list of updated fields
+        try {
+          await logProcessUpdate(
+            clientInfo.id,
+            clientInfo.fullName,
+            (clientInfo.processSource as "new" | "ongoing") || "ongoing", // Cast to ensure type safety
+            updatedFields
+          );
+          console.log("Actividad de proceso registrada correctamente usando activity-logger");
+        } catch (logError) {
+          console.error("Error al registrar actividad con activity-logger:", logError);
+          // Fallback logging
+          try {
+            await logUserActivity(
+              clientInfo.id,
+              "Actualización de proceso",
+              `${clientInfo.fullName} actualizó su proceso: ${updatedFields.join(', ')}`
+            );
+          } catch (directError) {
+            console.error("Error al registrar actividad directamente:", directError);
+          }
         }
       } else {
-         // Handle case where no process exists yet - maybe create one?
-         // For now, we'll just log a warning.
-         console.warn("No existing process found for client to update:", clientInfo.id);
-         // Optionally, create a new record here if desired
-      }
-      
-      // Log activity
-      const updatedFields = Object.keys(processUpdateData).filter(key => key !== 'updated_at'); // Get list of updated fields
-      try {
-        await logProcessUpdate(
-          clientInfo.id,
-          clientInfo.fullName,
-          clientInfo.processSource || 'ongoing' || 'new' || null, // Pass process type
-          updatedFields
-        );
-        console.log("Actividad registrada correctamente usando activity-logger");
-      } catch (logError) {
-        console.error("Error al registrar actividad con activity-logger:", logError);
-        // Fallback logging
+        // Actualización de información personal, contacto o laboral
+        // Actualizar en la tabla de clientes
+        const { error: updateError } = await supabase
+          .from('clients')
+          .update({
+            // Aquí los campos que se estén actualizando, por ejemplo:
+            ...getUpdatedClientFields(), // Esta función la añadiremos
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', clientInfo.id);
+  
+        if (updateError) {
+          console.error("Error al actualizar información del cliente:", updateError);
+          throw updateError;
+        }
+  
+        // Determinar qué campos se actualizaron y registrar la actividad
+        const updatedFields = getUpdatedFields(); // Esta función la añadiremos
+        
         try {
-          await logUserActivity(
-            clientInfo.id,
-            "Actualización de proceso",
-            `${clientInfo.fullName} actualizó su proceso: ${updatedFields.join(', ')}`
-          );
-        } catch (directError) {
-          console.error("Error al registrar actividad directamente:", directError);
+          // Crear un objeto básico del cliente para pasar a las funciones de log
+          // ya que clientInfo podría ser de tipo ClientProcessInfo y no Client
+          const clientBasicInfo = {
+            id: clientInfo.id,
+            full_name: clientInfo.fullName
+          };
+          
+          switch (updateType) {
+            case 'personal':
+              await logPersonalInfoUpdate(
+                clientInfo.id,
+                clientInfo.fullName,
+                updatedFields
+              );
+              break;
+            case 'contact':
+              await logContactInfoUpdate(
+                clientInfo.id,
+                clientInfo.fullName,
+                updatedFields
+              );
+              break;
+            case 'work':
+              await logWorkInfoUpdate(
+                clientInfo.id,
+                clientInfo.fullName,
+                updatedFields
+              );
+              break;
+            default:
+              // Usar la función general como fallback pero con parámetros individuales
+              // en lugar del objeto Client completo
+              await logUserActivity(
+                clientInfo.id,
+                "Actualización de perfil",
+                `${clientInfo.fullName} actualizó sus datos: ${updatedFields.join(", ")}`
+              );
+          }
+          console.log(`Actividad de actualización de ${updateType} registrada correctamente usando activity-logger`);
+        } catch (logError) {
+          console.error(`Error al registrar actividad de ${updateType} con activity-logger:`, logError);
+          // Fallback logging
+          try {
+            await logUserActivity(
+              clientInfo.id,
+              `Actualización de ${updateType}`,
+              `${clientInfo.fullName} actualizó su información: ${updatedFields.join(', ')}`
+            );
+          } catch (directError) {
+            console.error("Error al registrar actividad directamente:", directError);
+          }
         }
       }
       
@@ -815,6 +898,101 @@ export default function AdminDashboard() {
     } finally {
       setSaving(false);
     }
+  };
+  
+  // Función para determinar qué tipo de información se está actualizando
+  const determineUpdateType = (): 'personal' | 'contact' | 'work' | 'process' => {
+    // Compara los campos modificados con los originales para saber qué tipo de datos se cambiaron
+    
+    // Ejemplo: verificar qué campos fueron modificados
+    const changedFields = getChangedFieldNames();
+    
+    // Definir conjuntos de campos para cada categoría
+    // Ajusta estos campos según tu modelo de datos real
+    const personalFields = ['fullName', 'firstName', 'lastName', 'birthDate', 'nationality', 'gender', 'passportNumber'];
+    const contactFields = ['email', 'phone', 'address', 'city', 'postalCode', 'country'];
+    const workFields = ['companyName', 'position', 'workAddress', 'industry', 'workStartDate'];
+    const processFields = ['processStartDate', 'nextStepText', 'nextStepTitle', 'caseNumber', 'voivodato', 'completedSteps', 'totalSteps', 'next_appointment_date', 'processStage'];
+    
+    // Verificar en qué categoría caen los campos modificados
+    if (changedFields.some(field => processFields.includes(field))) {
+      return 'process';
+    } else if (changedFields.some(field => personalFields.includes(field))) {
+      return 'personal';
+    } else if (changedFields.some(field => contactFields.includes(field))) {
+      return 'contact';
+    } else if (changedFields.some(field => workFields.includes(field))) {
+      return 'work';
+    }
+    
+    // Si no se puede determinar, devolver personal como predeterminado
+    return 'personal';
+  };
+  
+  // Función para obtener los nombres de los campos que cambiaron
+  const getChangedFieldNames = (): string[] => {
+    if (!clientInfo || !originalClientInfo) return [];
+    
+    // Comparar cada campo y devolver los que han cambiado
+    return Object.keys(clientInfo).filter(key => {
+      // Usar indexación segura con type assertion
+      const currentValue = (clientInfo as any)[key];
+      const originalValue = (originalClientInfo as any)[key];
+      return currentValue !== originalValue;
+    });
+  };
+  
+  // Función para obtener solo los campos actualizados del cliente
+  const getUpdatedClientFields = (): Record<string, any> => {
+    if (!clientInfo || !originalClientInfo) return {};
+    
+    const updatedFields: Record<string, any> = {};
+    
+    // Solo incluir los campos que han cambiado
+    Object.keys(clientInfo).forEach(key => {
+      // Usar indexación segura con type assertion
+      const currentValue = (clientInfo as any)[key];
+      const originalValue = (originalClientInfo as any)[key];
+      
+      if (currentValue !== originalValue) {
+        updatedFields[key] = currentValue;
+      }
+    });
+    
+    return updatedFields;
+  };
+  
+  // Función para obtener los nombres de los campos actualizados en formato legible
+  const getUpdatedFields = (): string[] => {
+    const changedFieldNames = getChangedFieldNames();
+    
+    // Mapear los nombres de campo a nombres más legibles si es necesario
+    const fieldNameMapping: Record<string, string> = {
+      // Ajusta estos mappings según tus nombres de campo reales
+      fullName: 'nombre completo',
+      firstName: 'nombre',
+      lastName: 'apellido',
+      birthDate: 'fecha de nacimiento',
+      nationality: 'nacionalidad',
+      gender: 'género',
+      passportNumber: 'número de pasaporte',
+      email: 'correo electrónico',
+      phone: 'teléfono',
+      address: 'dirección',
+      city: 'ciudad',
+      postalCode: 'código postal',
+      country: 'país',
+      companyName: 'empresa',
+      position: 'cargo',
+      workAddress: 'dirección de trabajo',
+      industry: 'industria',
+      workStartDate: 'fecha de inicio laboral',
+      // Añadir más mapeos según sea necesario
+    };
+    
+    return changedFieldNames.map(field => 
+      fieldNameMapping[field] || field
+    );
   };
 
   // Funciones de utilidad para formatear fechas

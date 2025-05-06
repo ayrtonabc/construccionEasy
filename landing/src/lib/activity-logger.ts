@@ -35,17 +35,86 @@ export async function logUserActivity(
 }
 
 /**
- * Registra actividad cuando un usuario actualiza su perfil personal
+ * Registra actividad cuando un usuario actualiza su información personal
  */
-export async function logProfileUpdate(
-  client: Client, 
+export async function logPersonalInfoUpdate(
+  clientId: string,
+  clientName: string,
   updatedFields: string[]
 ): Promise<void> {
   const fieldNames = updatedFields.join(", ");
   await logUserActivity(
+    clientId,
+    "Actualización de información personal",
+    `${clientName} actualizó su información personal: ${fieldNames}`
+  );
+}
+
+/**
+ * Registra actividad cuando un usuario actualiza su información de contacto
+ */
+export async function logContactInfoUpdate(
+  clientId: string,
+  clientName: string,
+  updatedFields: string[]
+): Promise<void> {
+  const fieldNames = updatedFields.join(", ");
+  await logUserActivity(
+    clientId,
+    "Actualización de información de contacto",
+    `${clientName} actualizó su información de contacto: ${fieldNames}`
+  );
+}
+
+/**
+ * Registra actividad cuando un usuario actualiza su información laboral
+ */
+export async function logWorkInfoUpdate(
+  clientId: string,
+  clientName: string,
+  updatedFields: string[]
+): Promise<void> {
+  const fieldNames = updatedFields.join(", ");
+  await logUserActivity(
+    clientId,
+    "Actualización de información laboral",
+    `${clientName} actualizó su información laboral: ${fieldNames}`
+  );
+}
+
+/**
+ * Registra actividad cuando un usuario actualiza su perfil personal
+ * Esta función puede usarse de manera genérica o para mantener compatibilidad
+ */
+export async function logProfileUpdate(
+  client: Client, 
+  updatedFields: string[],
+  updateType: "personal" | "contact" | "work" = "personal"
+): Promise<void> {
+  const fieldNames = updatedFields.join(", ");
+  let activityType = "Actualización de perfil";
+  let description = `${client.full_name} actualizó sus datos: ${fieldNames}`;
+  
+  // Dependiendo del tipo de actualización, podemos personalizar el mensaje
+  switch (updateType) {
+    case "personal":
+      activityType = "Actualización de información personal";
+      description = `${client.full_name} actualizó su información personal: ${fieldNames}`;
+      break;
+    case "contact":
+      activityType = "Actualización de información de contacto";
+      description = `${client.full_name} actualizó su información de contacto: ${fieldNames}`;
+      break;
+    case "work":
+      activityType = "Actualización de información laboral";
+      description = `${client.full_name} actualizó su información laboral: ${fieldNames}`;
+      break;
+  }
+
+  await logUserActivity(
     client.id,
-    "Actualización de perfil",
-    `${client.full_name} actualizó sus datos: ${fieldNames}`
+    activityType,
+    description
   );
 }
 

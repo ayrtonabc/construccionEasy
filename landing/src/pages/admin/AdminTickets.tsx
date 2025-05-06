@@ -434,7 +434,7 @@ export default function AdminTickets() {
 
         {/* Información del ticket */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-start mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
                 {ticket?.ticket_number}: {ticket?.subject}
@@ -448,7 +448,7 @@ export default function AdminTickets() {
                 </span>
               </div>
             </div>
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-start sm:items-end mt-3 sm:mt-0">
               <span
                 className={`px-3 py-1 inline-flex text-sm font-medium rounded-full ${
                   ticket?.priority === "Alta"
@@ -581,7 +581,7 @@ export default function AdminTickets() {
               </div>
             )}
 
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
               <div>
                 <input
                   type="file"
@@ -594,7 +594,7 @@ export default function AdminTickets() {
                 <button
                   type="button"
                   onClick={handleFileAttach}
-                  className="flex items-center px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-50"
+                  className="flex items-center px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-50 w-full sm:w-auto justify-center sm:justify-start"
                   disabled={sending}
                 >
                   <PaperclipIcon className="w-4 h-4 mr-2" />
@@ -607,7 +607,7 @@ export default function AdminTickets() {
                 disabled={
                   (!newMessage.trim() && attachments.length === 0) || sending
                 }
-                className={`flex items-center px-4 py-2 rounded-md text-white ${
+                className={`flex items-center px-4 py-2 rounded-md text-white w-full sm:w-auto justify-center ${
                   (!newMessage.trim() && attachments.length === 0) || sending
                     ? "bg-gray-300 cursor-not-allowed"
                     : "bg-indigo-600 hover:bg-indigo-700"
@@ -635,17 +635,17 @@ export default function AdminTickets() {
   // Vista de lista de tickets
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
         <h1 className="text-2xl font-semibold text-gray-900">
           Gestión de Tickets
         </h1>
-        <div className="flex space-x-4">
-          <button className="flex items-center px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-50">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+          <button className="flex items-center px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-50 justify-center">
             <Filter className="w-4 h-4 mr-2" />
             Filtrar
           </button>
           <select
-            className="border rounded-md px-4 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="border rounded-md px-4 py-2 focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-auto"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -670,102 +670,105 @@ export default function AdminTickets() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ticket
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cliente
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Prioridad
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Última Actualización
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Mensajes
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTickets.map((ticket) => (
-                <tr
-                  key={ticket.id}
-                  className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => handleTicketClick(ticket.id)}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <MessageSquare className="h-5 w-5 text-gray-400 mr-2" />
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {ticket.ticket_number}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {ticket.subject}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <User className="h-5 w-5 text-gray-400 mr-2" />
-                      <div className="text-sm text-gray-900">
-                        {getClientName(ticket.client_id)}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        ticket.status === "Abierto"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : ticket.status === "En Proceso"
-                          ? "bg-blue-100 text-blue-800"
-                          : ticket.status === "Respondido"
-                          ? "bg-indigo-100 text-indigo-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {ticket.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`text-sm font-medium ${
-                        ticket.priority === "Alta"
-                          ? "text-red-600"
-                          : ticket.priority === "Media"
-                          ? "text-yellow-600"
-                          : "text-green-600"
-                      }`}
-                    >
-                      {ticket.priority}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Clock className="h-4 w-4 mr-1" />
-                      {formatDate(ticket.updated_at)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs font-medium">
-                        {countMessages(ticket.id)} mensajes
-                      </span>
-                    </div>
-                  </td>
+          {/* Contenedor con scroll horizontal */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ticket
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Cliente
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Prioridad
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Última Actualización
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Mensajes
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredTickets.map((ticket) => (
+                  <tr
+                    key={ticket.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleTicketClick(ticket.id)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <MessageSquare className="h-5 w-5 text-gray-400 mr-2" />
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {ticket.ticket_number}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {ticket.subject}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <User className="h-5 w-5 text-gray-400 mr-2" />
+                        <div className="text-sm text-gray-900">
+                          {getClientName(ticket.client_id)}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          ticket.status === "Abierto"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : ticket.status === "En Proceso"
+                            ? "bg-blue-100 text-blue-800"
+                            : ticket.status === "Respondido"
+                            ? "bg-indigo-100 text-indigo-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {ticket.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`text-sm font-medium ${
+                          ticket.priority === "Alta"
+                            ? "text-red-600"
+                            : ticket.priority === "Media"
+                            ? "text-yellow-600"
+                            : "text-green-600"
+                        }`}
+                      >
+                        {ticket.priority}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {formatDate(ticket.updated_at)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs font-medium">
+                          {countMessages(ticket.id)} mensajes
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
