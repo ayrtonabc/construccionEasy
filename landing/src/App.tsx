@@ -22,6 +22,7 @@ import React from "react";
     import BankingPage from "./pages/BankingPage";
     import RegisterPage from "./pages/RegisterPage";
     import Form from "./pages/Form";
+    import PeselPage from "./pages/PeselPage";
 
     // Admin components
     import AdminNavbar from "./components/AdminNavbar";
@@ -143,6 +144,7 @@ import React from "react";
               <Route path="/servicios" element={<><Navbar /><ServiciosPage /><Footer /></>} />
               <Route path="/guia" element={<><Navbar /><GuiaPage /><Footer /></>} />
               <Route path="/banking" element={<><Navbar /><BankingPage /><Footer /></>} />
+              <Route path="/pesel" element={<><Navbar /><PeselPage /><Footer /></>} />
 
               {/* Dashboard Client Routes */}
               <Route path="/dashboard" element={
