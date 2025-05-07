@@ -5,10 +5,13 @@ import {
   Phone, Mail, Building2, AlertTriangle, Save, ArrowLeft,
   Upload, CheckCircle2
 } from 'lucide-react';
+import DocumentViewerModal from "../../components/DocumentViewerModal";
 
 export default function ClientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentDocumentUrl, setCurrentDocumentUrl] = useState("");
   
   // Mock client data - In production, this would be fetched from an API
   const [client, setClient] = useState({
@@ -393,6 +396,11 @@ export default function ClientDetail() {
 
       {/* Documents Section */}
       <div className="bg-white rounded-lg shadow-md p-6">
+        <DocumentViewerModal 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+          documentUrl={currentDocumentUrl} 
+        />
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center">
             <FileText className="h-5 w-5 mr-2 text-gray-500" />
@@ -441,7 +449,17 @@ export default function ClientDetail() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-3">
-                      <button className="text-indigo-600 hover:text-indigo-900">Ver</button>
+                      <button 
+                        onClick={() => {
+                          // Simulación de URL para el ejemplo
+                          const mockUrl = `https://example.com/documents/${doc.name}`;
+                          setCurrentDocumentUrl(mockUrl);
+                          setIsModalOpen(true);
+                        }} 
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        Ver
+                      </button>
                       <button className="text-indigo-600 hover:text-indigo-900">Descargar</button>
                       {isEditing && (
                         <button className="text-red-600 hover:text-red-900">Eliminar</button>

@@ -2,6 +2,7 @@ import { FileText, Upload } from "lucide-react";
 import { Client, ClientDocument } from "../../types/types";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase/client";
+import DocumentViewerModal from "../../components/DocumentViewerModal";
 
 interface ClientsDocumentsProps {
   isEditing: boolean;
@@ -10,6 +11,8 @@ interface ClientsDocumentsProps {
 
 const ClientsDocuments: React.FC<ClientsDocumentsProps> = ({ isEditing, client }) => {
   const [documents, setDocuments] = useState<ClientDocument[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentDocumentUrl, setCurrentDocumentUrl] = useState("");
 
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -29,7 +32,8 @@ const ClientsDocuments: React.FC<ClientsDocumentsProps> = ({ isEditing, client }
 
   const handleView = (filePath: string) => {
     const url = getPublicURL(filePath);
-    window.open(url, "_blank"); // Abre en una nueva pestaña
+    setCurrentDocumentUrl(url);
+    setIsModalOpen(true);
   };
 
   const handleDownload = (filePath: string) => {
@@ -88,6 +92,11 @@ const ClientsDocuments: React.FC<ClientsDocumentsProps> = ({ isEditing, client }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
+      <DocumentViewerModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        documentUrl={currentDocumentUrl} 
+      />
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center">
           <FileText className="h-5 w-5 mr-2 text-gray-500" />

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
     import { supabase } from "../../lib/supabase/client";
     import { useAuth } from "../../context/AuthContext";
     import { format } from "date-fns"; // Para formatear fechas
+    import DocumentViewerModal from "../../components/DocumentViewerModal";
 
     // Definición de tipos según el esquema actual
     interface ClientDocument {
@@ -18,6 +19,8 @@ import React, { useEffect, useState } from "react";
       const [documents, setDocuments] = useState<ClientDocument[]>([]);
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState<string | null>(null);
+      const [isModalOpen, setIsModalOpen] = useState(false);
+      const [currentDocumentUrl, setCurrentDocumentUrl] = useState("");
       const { user } = useAuth();
 
       useEffect(() => {
@@ -87,8 +90,9 @@ import React, { useEffect, useState } from "react";
 
           if (error) throw error;
 
-          // Abrir en nueva pestaña
-          window.open(data.signedUrl, "_blank");
+          // Establecer la URL del documento y abrir el modal
+          setCurrentDocumentUrl(data.signedUrl);
+          setIsModalOpen(true);
         } catch (error) {
           console.error("Error al visualizar el documento:", error);
           alert("No se pudo abrir el documento");
@@ -159,6 +163,11 @@ import React, { useEffect, useState } from "react";
 
       return (
         <div className="bg-white rounded-lg shadow-md p-6">
+          <DocumentViewerModal 
+            isOpen={isModalOpen} 
+            onClose={() => setIsModalOpen(false)} 
+            documentUrl={currentDocumentUrl} 
+          />
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Documentación</h2>
             <span className="text-sm text-gray-500">
