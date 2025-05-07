@@ -10,14 +10,26 @@ const Navbar = () => {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
 
+  // Determine if the navbar should have a solid background initially or on scroll
+  const showSolidBackground = !isHomePage || isScrolled;
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 0);
     };
 
+    // Set initial scroll state based on current scroll position
+    handleScroll();
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, []); // Run only once on mount
+
+  // Recalculate solid background state when location changes
+  useEffect(() => {
+    setIsScrolled(window.scrollY > 0); // Update scroll state on navigation
+  }, [location.pathname]);
+
 
   const menuItems = [
     { name: 'Inicio', to: '/', type: 'route' },
@@ -28,16 +40,18 @@ const Navbar = () => {
     { name: 'Contacto', to: '/contact', type: 'route' },
   ];
 
-  const renderLink = (item) => {
+  const renderLink = (item: any) => {
+    const linkTextColorClass = showSolidBackground
+      ? 'text-gray-600 hover:text-blue-600'
+      : 'text-white/90 hover:text-white';
+
     if (item.type === 'scroll' && isHomePage) {
       return (
         <ScrollLink
           to={item.to}
           smooth={true}
           duration={500}
-          className={`cursor-pointer transition-all duration-300 hover:scale-110 ${
-            isScrolled ? 'text-gray-600 hover:text-blue-600' : 'text-white/90 hover:text-white'
-          }`}
+          className={`cursor-pointer transition-all duration-300 hover:scale-110 ${linkTextColorClass}`}
           onClick={() => setIsOpen(false)}
         >
           {item.name}
@@ -46,10 +60,8 @@ const Navbar = () => {
     }
     return (
       <RouterLink
-        to={item.to}
-        className={`transition-all duration-300 hover:scale-110 ${
-          isScrolled ? 'text-gray-600 hover:text-blue-600' : 'text-white/90 hover:text-white'
-        }`}
+        to={item.to === 'servicios' && !isHomePage ? '/servicios' : item.to} // Ensure servicios link works directly
+        className={`transition-all duration-300 hover:scale-110 ${linkTextColorClass}`}
         onClick={() => setIsOpen(false)}
       >
         {item.name}
@@ -57,25 +69,29 @@ const Navbar = () => {
     );
   };
 
+  const logoSrc = showSolidBackground ? "img/logob.png" : "img/logo.png";
+  const mobileButtonColorClass = showSolidBackground ? 'text-gray-600' : 'text-white';
+  const navClasses = `fixed w-full z-50 transition-all duration-300 ${
+    showSolidBackground ? 'bg-white/80 backdrop-blur-md shadow-lg' : 'bg-transparent'
+  }`;
+
   return (
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6 }}
-      className={`fixed w-full z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-white/80 backdrop-blur-md shadow-lg' : 'bg-transparent'
-      }`}
+      className={navClasses}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20">
-          <motion.div 
+          <motion.div
             className="flex-shrink-0 flex items-center"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             <RouterLink to="/">
-              <img 
-                src={isScrolled ? "img/logob.png" : "img/logo.png"}
+              <img
+                src={logoSrc}
                 alt="Logo"
                 className="h-6 w-auto"
               />
@@ -100,9 +116,7 @@ const Navbar = () => {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setIsOpen(!isOpen)}
-              className={`transition-colors duration-300 ${
-                isScrolled ? 'text-gray-600' : 'text-white'
-              }`}
+              className={`transition-colors duration-300 ${mobileButtonColorClass}`}
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </motion.button>
@@ -119,7 +133,8 @@ const Navbar = () => {
             transition={{ duration: 0.3 }}
             className="md:hidden overflow-hidden"
           >
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white/80 backdrop-blur-md shadow-lg">
+            {/* Ensure mobile menu background matches solid state */}
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white/95 backdrop-blur-md shadow-lg">
               {menuItems.map((item, index) => (
                 <motion.div
                   key={item.name}
@@ -128,7 +143,14 @@ const Navbar = () => {
                   transition={{ duration: 0.3, delay: index * 0.1 }}
                   className="block px-3 py-2"
                 >
-                  {renderLink(item)}
+                  {/* Mobile links should always use the 'scrolled' text color */}
+                   <RouterLink
+                     to={item.to === 'servicios' && !isHomePage ? '/servicios' : item.to}
+                     className={`block rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900`}
+                     onClick={() => setIsOpen(false)}
+                   >
+                     {item.name}
+                   </RouterLink>
                 </motion.div>
               ))}
             </div>
