@@ -54,7 +54,7 @@ const Pesel = () => {
               </div>
             </div>
 
-            <Link to="/servicios">
+            <Link to="/pesel">
               <button className="bg-blue-600 text-white px-8 py-4 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 w-full sm:w-auto">
                 <HelpCircle size={20} />
                 Solicitar PESEL Gratis

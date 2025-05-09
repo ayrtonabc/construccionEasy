@@ -4,6 +4,7 @@ import { Lock, Mail, Eye, EyeOff, ArrowLeft, ShieldCheck } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase/client";
 import { useAuth } from "../context/AuthContext";
+import PasswordChangeModal from "./PasswordChangeModal"; 
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,6 +14,11 @@ const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isAdminLogin, setIsAdminLogin] = useState(false);
+  
+  // Estados para el modal de cambio de contraseña
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [loggedInEmail, setLoggedInEmail] = useState("");
+
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin } = useAuth();
@@ -60,6 +66,13 @@ const LoginPage = () => {
 
           // Solo redirigimos si el usuario está activo en nuestra tabla
           if (userData /* && userData.is_active */) {
+            // Verificar si el usuario necesita cambiar su contraseña
+            if (userData.password_changed === false) {
+              setLoggedInEmail(userData.email);
+              setShowPasswordModal(true);
+              return;
+            }
+            
             // Si el usuario es admin, redirigimos al panel de administración
             if (userData.role === "admin") {
               navigate(adminReturnUrl);
@@ -133,6 +146,7 @@ const LoginPage = () => {
               username: email.split("@")[0], // Usamos parte del email como username provisional
               role: isAdminLogin && email === "lopez.ayrton@gmail.com" ? "admin" : "client",
               is_active: true,
+              password_changed: false, // Por defecto, el usuario no ha cambiado su contraseña
             },
           ]);
 
@@ -141,12 +155,10 @@ const LoginPage = () => {
           }
           console.log("Perfil de usuario creado exitosamente");
           
-          // Verificamos el rol después de crear el usuario
-          if (isAdminLogin && email === "lopez.ayrton@gmail.com") {
-            console.log("Administrador autenticado, redirigiendo al panel admin");
-            navigate(adminReturnUrl);
-            return;
-          }
+          // Si es un usuario nuevo, necesita cambiar su contraseña
+          setLoggedInEmail(email);
+          setShowPasswordModal(true);
+          return;
         } else {
           // Si el usuario no está activo en nuestra base, lo activamos
           if (!userData.is_active) {
@@ -154,6 +166,13 @@ const LoginPage = () => {
               .from("users")
               .update({ is_active: true })
               .eq("email", email);
+          }
+          
+          // Verificar si el usuario necesita cambiar su contraseña
+          if (userData.password_changed === false) {
+            setLoggedInEmail(email);
+            setShowPasswordModal(true);
+            return;
           }
           
           // Verificar si es administrador
@@ -221,6 +240,40 @@ const LoginPage = () => {
     } else {
       setEmail("");
       setPassword("");
+    }
+  };
+  
+  // Manejador para cuando se completa el cambio de contraseña
+  const handlePasswordChangeSuccess = async () => {
+    try {
+      // Actualizar el campo password_changed en la base de datos
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (userData.user) {
+        await supabase
+          .from("users")
+          .update({ password_changed: true })
+          .eq("id", userData.user.id);
+        
+        setSuccessMessage("¡Contraseña actualizada correctamente!");
+        
+        // Redirigir según el rol del usuario
+        const { data: userProfile, error } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", userData.user.id)
+          .single();
+          
+        if (!error && userProfile) {
+          if (userProfile.role === "admin") {
+            navigate(adminReturnUrl);
+          } else {
+            navigate(returnUrl);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error al actualizar el estado de la contraseña:", error);
     }
   };
 
@@ -413,6 +466,14 @@ const LoginPage = () => {
           </div>
         </motion.div>
       </div>
+      
+      {/* Modal de cambio de contraseña obligatorio */}
+      <PasswordChangeModal 
+        isOpen={showPasswordModal} 
+        onClose={() => {}} // No permitimos cerrar el modal si el usuario no ha cambiado su contraseña
+        onSuccess={handlePasswordChangeSuccess}
+        email={loggedInEmail}
+      />
     </div>
   );
 };

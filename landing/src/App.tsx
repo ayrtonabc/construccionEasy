@@ -45,6 +45,7 @@ import React from "react";
     import { AuthProvider, useAuth } from "./context/AuthContext";
     import NavbarClient from "./components/NavbarClient";
     import ClientDashboard from "./pages/dashboard/HomePage";
+import PeselPage from "./pages/PeselPage";
 
     interface ProtectedRouteProps {
       children: React.ReactNode;
@@ -143,6 +144,7 @@ import React from "react";
               <Route path="/servicios" element={<><Navbar /><ServiciosPage /><Footer /></>} />
               <Route path="/guia" element={<><Navbar /><GuiaPage /><Footer /></>} />
               <Route path="/banking" element={<><Navbar /><BankingPage /><Footer /></>} />
+              <Route path="/pesel" element={<><Navbar /><PeselPage /><Footer /></>} />
 
               {/* Dashboard Client Routes */}
               <Route path="/dashboard" element={
