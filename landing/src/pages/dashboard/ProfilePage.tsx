@@ -76,6 +76,7 @@ export default function ProfilePage() {
     caseNumber: "",
     cityOngoingResidence: "",
     zipCodeOngoingResidence: "",
+    peselNumberOngoingResidence: "",
   };
 
   const [profile, setProfile] = useState<ProfileData>(initialProfile);
@@ -143,7 +144,7 @@ export default function ProfilePage() {
         phoneNumber: clientData.phone_number || "",
         currentJob: clientData.current_job || "",
         currentAgency: clientData.current_agency || "",
-        peselNumber: clientData.pesel_number || "",
+        /* peselNumber: clientData.pesel_number || "", */
 
         // Contact info (from various sources)
         phone: clientData.phone_number || "",
@@ -158,7 +159,7 @@ export default function ProfilePage() {
 
         // New residence application info
         placeOfBirth: newResidenceData?.place_of_birth || "",
-        /* peselNumber: newResidenceData?.pesel_number || "", */
+        peselNumber: newResidenceData?.pesel_number || "",
         height: newResidenceData?.height_cm
           ? String(newResidenceData.height_cm)
           : "",
@@ -190,6 +191,8 @@ export default function ProfilePage() {
         caseNumber: ongoingProcessData?.case_number || "",
         cityOngoingResidence: ongoingProcessData?.city_ongoing_residence || "",
         zipCodeOngoingResidence: ongoingProcessData?.zip_code || "",
+        peselNumberOngoingResidence:
+          ongoingProcessData?.pesel_number_ongoing || "",
       };
 
       setProfile(combinedProfile);
@@ -231,37 +234,47 @@ export default function ProfilePage() {
     }
 
     // Validación condicional de ciudad según el tipo de proceso
-  if (profile.processStage) {
-    // Cliente con proceso en curso - validar cityOngoingResidence
-    if (editedProfile.cityOngoingResidence !== undefined && 
-        editedProfile.cityOngoingResidence.trim() === "") {
-      newValidation.cityOngoingResidence = "La ciudad es obligatoria";
-      isValid = false;
+    if (profile.processStage) {
+      // Cliente con proceso en curso - validar cityOngoingResidence
+      if (
+        editedProfile.cityOngoingResidence !== undefined &&
+        editedProfile.cityOngoingResidence.trim() === ""
+      ) {
+        newValidation.cityOngoingResidence = "La ciudad es obligatoria";
+        isValid = false;
+      }
+    } else {
+      // Cliente sin proceso en curso - validar city
+      if (
+        editedProfile.city !== undefined &&
+        editedProfile.city.trim() === ""
+      ) {
+        newValidation.city = "La ciudad es obligatoria";
+        isValid = false;
+      }
     }
-  } else {
-    // Cliente sin proceso en curso - validar city
-    if (editedProfile.city !== undefined && editedProfile.city.trim() === "") {
-      newValidation.city = "La ciudad es obligatoria";
-      isValid = false;
-    }
-  }
 
-  // Validación condicional del código postal según el tipo de proceso
-  if (profile.processStage) {
-    // Cliente con proceso en curso - validar zipCodeOngoingResidence
-    if (editedProfile.zipCodeOngoingResidence !== undefined && 
-        editedProfile.zipCodeOngoingResidence.trim() === "") {
-      newValidation.zipCodeOngoingResidence = "El código postal es obligatorio";
-      isValid = false;
+    // Validación condicional del código postal según el tipo de proceso
+    if (profile.processStage) {
+      // Cliente con proceso en curso - validar zipCodeOngoingResidence
+      if (
+        editedProfile.zipCodeOngoingResidence !== undefined &&
+        editedProfile.zipCodeOngoingResidence.trim() === ""
+      ) {
+        newValidation.zipCodeOngoingResidence =
+          "El código postal es obligatorio";
+        isValid = false;
+      }
+    } else {
+      // Cliente sin proceso en curso - validar zipCode
+      if (
+        editedProfile.zipCode !== undefined &&
+        editedProfile.zipCode.trim() === ""
+      ) {
+        newValidation.zipCode = "El código postal es obligatorio";
+        isValid = false;
+      }
     }
-  } else {
-    // Cliente sin proceso en curso - validar zipCode
-    if (editedProfile.zipCode !== undefined && 
-        editedProfile.zipCode.trim() === "") {
-      newValidation.zipCode = "El código postal es obligatorio";
-      isValid = false;
-    }
-  }
 
     setValidation(newValidation);
     return isValid;
@@ -328,6 +341,8 @@ export default function ProfilePage() {
           city_ongoing_residence: editedProfile.cityOngoingResidence,
           zip_code: editedProfile.zipCodeOngoingResidence,
           updated_at: new Date().toISOString(),
+          pesel_number_ongoing: editedProfile.peselNumberOngoingResidence,
+          has_work_permit: editedProfile.hasWorkPermit,
         };
 
         const { error: updateOngoingError } = await supabase
@@ -520,13 +535,64 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="flex items-center">
-              <FileText className="h-5 w-5 text-gray-400 mr-3" />
-              <div className="flex-1">
-                <p className="text-sm text-gray-500">PESEL</p>
-                <p className="font-medium">{profile.peselNumber}</p>
+            {/* Campo PESEL para usuarios sin proceso en curso */}
+            {!profile.processStage && (
+              <div className="flex items-start">
+                <FileText className="h-5 w-5 text-gray-400 mr-3 mt-1" />
+                <div className="flex-1">
+                  <p className="text-sm text-gray-500">PESEL</p>
+                  {isEditing ? (
+                    <div>
+                      <input
+                        type="text"
+                        value={editedProfile.peselNumber}
+                        onChange={(e) =>
+                          handleInputChange("peselNumber", e.target.value)
+                        }
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:ring-2 focus:ring-opacity-50 transition-all duration-200"
+                        placeholder="Ingresa tu número PESEL (opcional)"
+                      />
+                    </div>
+                  ) : (
+                    <p className="font-medium">
+                      {profile.peselNumber || "No especificado"}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Campo PESEL para usuarios con proceso en curso */}
+            {profile.processStage && (
+              <div className="flex items-start">
+                <FileText className="h-5 w-5 text-gray-400 mr-3 mt-1" />
+                <div className="flex-1">
+                  <p className="text-sm text-gray-500">
+                    PESEL (Proceso en Curso)
+                  </p>
+                  {isEditing ? (
+                    <div>
+                      <input
+                        type="text"
+                        value={editedProfile.peselNumberOngoingResidence}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "peselNumberOngoingResidence",
+                            e.target.value
+                          )
+                        }
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:ring-2 focus:ring-opacity-50 transition-all duration-200"
+                        placeholder="Ingresa tu número PESEL (opcional)"
+                      />
+                    </div>
+                  ) : (
+                    <p className="font-medium">
+                      {profile.peselNumberOngoingResidence || "No especificado"}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {profile.placeOfBirth && (
               <div className="flex items-center">
@@ -935,13 +1001,31 @@ export default function ProfilePage() {
             </div>
 
             {profile.hasWorkPermit !== undefined && (
-              <div className="flex items-center">
-                <FileText className="h-5 w-5 text-gray-400 mr-3" />
+              <div className="flex items-start">
+                <FileText className="h-5 w-5 text-gray-400 mr-3 mt-1" />
                 <div className="flex-1">
                   <p className="text-sm text-gray-500">Permiso de Trabajo</p>
-                  <p className="font-medium">
-                    {profile.hasWorkPermit ? "Sí" : "No"}
-                  </p>
+                  {isEditing ? (
+                    <div className="mt-1">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={editedProfile.hasWorkPermit}
+                          onChange={(e) =>
+                            handleInputChange("hasWorkPermit", e.target.checked)
+                          }
+                          className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          {editedProfile.hasWorkPermit ? "Sí" : "No"}
+                        </span>
+                      </label>
+                    </div>
+                  ) : (
+                    <p className="font-medium">
+                      {profile.hasWorkPermit ? "Sí" : "No"}
+                    </p>
+                  )}
                 </div>
               </div>
             )}

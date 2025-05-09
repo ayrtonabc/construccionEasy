@@ -457,6 +457,7 @@ export interface ProfileData {
   caseNumber: string;
   cityOngoingResidence: string;
   zipCodeOngoingResidence: string;
+  peselNumberOngoingResidence: string;
 }
 
 export const initialFormData: FormData = {
