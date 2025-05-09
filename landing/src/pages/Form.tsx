@@ -886,12 +886,12 @@ const Form: React.FC = () => {
               onChange={handleInputChange}
               options={[
                 { value: "", label: "Seleccione..." },
-                { value: "submitted", label: "Solicitud Presentada" },
-                { value: "yellow-card", label: "Esperando cita para huellas" },
-                { value: "fingerprint", label: "Esperando resolución" },
-                { value: "red-stamp", label: "Proceso completado" },
-                { value: "negative", label: "Solicitud rechazada" },
-                { value: "unknown", label: "Documentación siendo procesada" },
+                { value: "Solicitud Presentada", label: "Solicitud Presentada" },
+                { value: "Esperando cita para huellas", label: "Esperando cita para huellas" },
+                { value: "Esperando resolución", label: "Esperando resolución" },
+                { value: "Proceso completado", label: "Proceso completado" },
+                { value: "Solicitud rechazada", label: "Solicitud rechazada" },
+                { value: "Documentación siendo procesada", label: "Documentación siendo procesada" },
               ]}
             />
             <FormInput
@@ -934,8 +934,8 @@ const Form: React.FC = () => {
             <FormInput
               label="Ciudad"
               type="text"
-              name="city"
-              value={formData.city}
+              name="city_ongoing_residence"
+              value={formData.city_ongoing_residence}
               onChange={handleInputChange}
             />
             <FormInput

@@ -230,18 +230,38 @@ export default function ProfilePage() {
       isValid = false;
     }
 
+    // Validación condicional de ciudad según el tipo de proceso
+  if (profile.processStage) {
+    // Cliente con proceso en curso - validar cityOngoingResidence
+    if (editedProfile.cityOngoingResidence !== undefined && 
+        editedProfile.cityOngoingResidence.trim() === "") {
+      newValidation.cityOngoingResidence = "La ciudad es obligatoria";
+      isValid = false;
+    }
+  } else {
+    // Cliente sin proceso en curso - validar city
     if (editedProfile.city !== undefined && editedProfile.city.trim() === "") {
       newValidation.city = "La ciudad es obligatoria";
       isValid = false;
     }
+  }
 
-    if (
-      editedProfile.zipCode !== undefined &&
-      editedProfile.zipCode.trim() === ""
-    ) {
+  // Validación condicional del código postal según el tipo de proceso
+  if (profile.processStage) {
+    // Cliente con proceso en curso - validar zipCodeOngoingResidence
+    if (editedProfile.zipCodeOngoingResidence !== undefined && 
+        editedProfile.zipCodeOngoingResidence.trim() === "") {
+      newValidation.zipCodeOngoingResidence = "El código postal es obligatorio";
+      isValid = false;
+    }
+  } else {
+    // Cliente sin proceso en curso - validar zipCode
+    if (editedProfile.zipCode !== undefined && 
+        editedProfile.zipCode.trim() === "") {
       newValidation.zipCode = "El código postal es obligatorio";
       isValid = false;
     }
+  }
 
     setValidation(newValidation);
     return isValid;

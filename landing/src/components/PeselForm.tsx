@@ -286,7 +286,7 @@ const PeselForm: React.FC = () => {
       alert(
         "Solicitud procesada con éxito. Se ha descargado el PDF con sus datos."
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al generar el PDF:", error);
       alert(`Hubo un error al generar el PDF: ${error.message}`);
       setIsLoading(false);
