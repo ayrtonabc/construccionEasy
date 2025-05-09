@@ -350,7 +350,7 @@ const Form: React.FC = () => {
         // Add default values for progress if needed
         completed_steps: 0,
         total_steps: 5, // Example total steps
-        city: formData.city,
+        city_ongoing_residence: formData.city_ongoing_residence,
         zip_code: formData.zip_code,
       });
 
