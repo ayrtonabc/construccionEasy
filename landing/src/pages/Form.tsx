@@ -139,6 +139,8 @@ const Form: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Actualización en la función handleSubmit para manejar la falta de ID de cliente
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Basic validation check for conditional fields before proceeding
@@ -190,17 +192,25 @@ const Form: React.FC = () => {
         setIsSubmitting(true);
         setSubmitError(null);
 
-        if (!targetClientId) {
-          throw new Error(
-            "No se pudo determinar el ID del cliente para guardar los datos."
-          );
-        }
+        // Si no tenemos un targetClientId y el usuario está autenticado, intentamos crear un nuevo registro de cliente
+        let clientId = targetClientId;
+      if (!clientId && loggedInUser) {
+        clientId = await createClientRecord();
+        console.log("Nuevo ID de cliente creado y asignado:", clientId);
+      }
+
+      // Verificar si tenemos el ID del cliente
+      if (!clientId) {
+        throw new Error(
+          "No se pudo determinar el ID del cliente para guardar los datos."
+        );
+      }
 
         // Guardar los datos en Supabase según el tipo de formulario
         if (formType === "new") {
-          await saveNewResidenceApplication(targetClientId, targetUserId); // Pass IDs
+          await saveNewResidenceApplication(clientId, targetUserId || (loggedInUser?.id || null));
         } else if (formType === "ongoing") {
-          await saveOngoingResidenceProcess(targetClientId, targetUserId); // Pass IDs
+          await saveOngoingResidenceProcess(clientId, targetUserId || (loggedInUser?.id || null));
         }
 
         console.log("Formulario enviado con éxito");
@@ -218,6 +228,116 @@ const Form: React.FC = () => {
       }
     }
   };
+
+  // Función para crear un registro de cliente si no existe
+  const createClientRecord = async () => {
+    if (!loggedInUser) {
+      throw new Error("Usuario no autenticado. Por favor, inicie sesión.");
+    }
+
+    // Verificar si ya existe un cliente con este user_id
+    const { data: existingClient, error: checkError } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("user_id", loggedInUser.id)
+      .single();
+
+    if (checkError && checkError.code !== "PGRST116") {
+      // PGRST116 es el error de "no se encontraron resultados", lo que es esperable
+      console.error("Error al verificar cliente existente:", checkError);
+      throw new Error(`Error al verificar cliente: ${checkError.message}`);
+    }
+
+    // Si ya existe un cliente, usar ese ID
+    if (existingClient) {
+      setTargetClientId(existingClient.id);
+      return existingClient.id;
+    }
+
+    // Si no existe, crear un nuevo registro de cliente
+    const { data: newClient, error: insertError } = await supabase
+      .from("clients")
+      .insert({
+        user_id: loggedInUser.id,
+        full_name: formData.fullName || "Pendiente",
+        passport_number: formData.passportNumber,
+        date_of_birth: formData.dateOfBirth,
+        email: formData.email || loggedInUser.email,
+        phone_number: formData.phoneNumber,
+        current_job: formData.currentJob,
+        current_agency: formData.currentAgencyName,
+        has_completed_form: false,
+        // Otros campos con valores iniciales si son necesarios
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Error al crear cliente:", insertError);
+      throw new Error(`Error al crear cliente: ${insertError.message}`);
+    }
+
+    if (!newClient) {
+      throw new Error("No se pudo crear el registro de cliente.");
+    }
+
+    // Actualizar las variables de estado con el nuevo ID de cliente
+    setTargetClientId(newClient.id);
+    setTargetUserId(loggedInUser.id);
+
+    console.log("Cliente creado exitosamente con ID:", newClient.id);
+    return newClient.id;
+  };
+
+  // Actualización del useEffect para determinar el usuario objetivo
+  useEffect(() => {
+    const determineTargetUser = async () => {
+      if (isAdminFilling && targetClientId) {
+        // Admin is filling for a specific client, find the client's user_id
+        const { data: clientData, error } = await supabase
+          .from("clients")
+          .select("user_id")
+          .eq("id", targetClientId)
+          .single();
+        if (!error && clientData) {
+          setTargetUserId(clientData.user_id);
+        } else {
+          console.error(
+            "Admin filling form: Could not find user_id for client",
+            targetClientId,
+            error
+          );
+          setSubmitError(
+            "No se pudo encontrar el usuario asociado al cliente."
+          );
+        }
+      } else if (loggedInUser) {
+        // Normal client flow, use logged-in user's ID
+        setTargetUserId(loggedInUser.id);
+
+        // Also try to find the client ID associated with this user
+        const { data: clientData, error } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("user_id", loggedInUser.id)
+          .single();
+
+        if (!error && clientData) {
+          console.log("Cliente existente encontrado con ID:", clientData.id);
+          setTargetClientId(clientData.id);
+        } else if (error && error.code !== "PGRST116") {
+          // Solo registrar errores que no sean "no data found"
+          console.error("Error al buscar cliente:", error);
+        } else {
+          console.log(
+            "No se encontró cliente para este usuario, se creará uno al enviar el formulario."
+          );
+        }
+      }
+    };
+
+    determineTargetUser();
+  }, [isAdminFilling, targetClientId, loggedInUser]);
 
   // Función para guardar un nuevo proceso de residencia
   const saveNewResidenceApplication = async (
@@ -886,12 +1006,24 @@ const Form: React.FC = () => {
               onChange={handleInputChange}
               options={[
                 { value: "", label: "Seleccione..." },
-                { value: "Solicitud Presentada", label: "Solicitud Presentada" },
-                { value: "Esperando cita para huellas", label: "Esperando cita para huellas" },
-                { value: "Esperando resolución", label: "Esperando resolución" },
+                {
+                  value: "Solicitud Presentada",
+                  label: "Solicitud Presentada",
+                },
+                {
+                  value: "Esperando cita para huellas",
+                  label: "Esperando cita para huellas",
+                },
+                {
+                  value: "Esperando resolución",
+                  label: "Esperando resolución",
+                },
                 { value: "Proceso completado", label: "Proceso completado" },
                 { value: "Solicitud rechazada", label: "Solicitud rechazada" },
-                { value: "Documentación siendo procesada", label: "Documentación siendo procesada" },
+                {
+                  value: "Documentación siendo procesada",
+                  label: "Documentación siendo procesada",
+                },
               ]}
             />
             <FormInput
