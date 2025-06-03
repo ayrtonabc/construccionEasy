@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const Footer = () => {
+  const { t, i18n } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -13,9 +16,10 @@ const Footer = () => {
   }, []);
 
   const legalLinks = [
-    { name: 'Política de Privacidad', href: '/privacy-policy' },
-    { name: 'RODO', href: '/rodo' },
-    { name: 'Manejo de Cookies', href: '/cookies' },
+    { name: t('footer.privacyPolicy'), href: '/privacy-policy' },
+    { name: t('footer.rodo'), href: '/rodo' },
+    { name: t('footer.cookies'), href: '/cookies' },
+    { name: t('footer.downloads', 'Recursos'), href: '/recursos' },
   ];
 
   return (
@@ -25,33 +29,34 @@ const Footer = () => {
           {/* Logo y descripción */}
           <div className="text-center">
             <img 
-              src={isScrolled ? "img/logo.png" : "img/logo.png"}
-              alt="Legalísimo Logo"
-              className="h-6 w-auto mx-auto mb-3"
+              src={isScrolled ? "/img/logo.png" : "/img/logo.png"} // Consider using a single logo if they are the same
+              alt={`${t('footer.companyName')} Logo`}
+              className="h-8 w-auto mx-auto mb-4" // Increased logo size slightly
             />
+            {/* Removed Easy process text below logo */}
             <p className="text-gray-400 text-sm max-w-md">
-              Tu socio confiable para la legalización de residencia en Polonia. 
-              Comprometidos con la excelencia y la transparencia.
+              {t('footer.description')}
             </p>
           </div>
 
           {/* Enlaces legales */}
-          <div className="flex flex-row justify-center gap-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-3">
             {legalLinks.map((link) => (
-              <a
+              <Link
                 key={link.name}
-                href={link.href}
+                to={link.href}
                 className="text-gray-400 hover:text-white text-sm font-medium 
                           transition-colors duration-300 ease-in-out whitespace-nowrap"
               >
                 {link.name}
-              </a>
+              </Link>
             ))}
           </div>
 
-          {/* Copyright */}
+          {/* Copyright y NIP */}
           <div className="text-center text-gray-500 text-sm">
-            <p>© {new Date().getFullYear()} Todos los derechos reservados.</p>
+            <p>{t('footer.copyright', { year: new Date().getFullYear() })}</p>
+            <p className="mt-1">{t('footer.nip')}</p>
           </div>
         </div>
       </div>

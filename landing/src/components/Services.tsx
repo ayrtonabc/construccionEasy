@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileText, ArrowRight, CalendarCheck, Scale } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const ServiceCard = ({ icon: Icon, title, description, features }) => {
   return (
@@ -29,6 +30,8 @@ const ServiceCard = ({ icon: Icon, title, description, features }) => {
 };
 
 const ServicesSection = () => {
+  const { t } = useTranslation();
+
   return (
     <section id="servicios" className="section-padding bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,10 +43,10 @@ const ServicesSection = () => {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl font-bold gradient-text sm:text-4xl lg:text-5xl">
-             ¿Que Ofrecemos?
+             {t('services.title')}
             </h2>
             <p className="mt-4 text-xl text-gray-600">
-              Soluciones prácticas para cada etapa del proceso
+              {t('services.subtitle')}
             </p>
           </motion.div>
         </div>
@@ -51,47 +54,47 @@ const ServicesSection = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <ServiceCard
             icon={FileText}
-            title="Inicio de Residencia"
-            description="Gestionamos todo el proceso desde cero con eficiencia y precisión."
+            title={t('services.card1Title')}
+            description={t('services.card1Desc')}
             features={[
-              "Evaluación gratuita",
-              "Preparación de documentos",
-              "Presentación oficial",
-              "Seguimiento completo"
+              t('services.card1Feature1'),
+              t('services.card1Feature2'),
+              t('services.card1Feature3'),
+              t('services.card1Feature4')
             ]}
           />
           <ServiceCard
             icon={ArrowRight}
-            title="Continuar Proceso"
-            description="Resolvemos trabas y avanzamos tu solicitud con expertise."
+            title={t('services.card2Title')}
+            description={t('services.card2Desc')}
             features={[
-              "Revisión del estado",
-              "Corrección de errores",
-              "Presentación de poderes",
-              "Cancelación de poderes",
-              "Asesoría legal"
+              t('services.card2Feature1'),
+              t('services.card2Feature2'),
+              t('services.card2Feature3'),
+              t('services.card2Feature4'),
+              t('services.card2Feature5')
             ]}
           />
           <ServiceCard
             icon={CalendarCheck}
-            title="Gestión de Citas"
-            description="Recuperamos citas perdidas y coordinamos nuevas fechas."
+            title={t('services.card3Title')}
+            description={t('services.card3Desc')}
             features={[
-              "Reprogramación rápida",
-              "Contacto con autoridades",
-              "Seguimiento activo",
-              "Confirmación asegurada"
+              t('services.card3Feature1'),
+              t('services.card3Feature2'),
+              t('services.card3Feature3'),
+              t('services.card3Feature4')
             ]}
           />
           <ServiceCard
             icon={Scale}
-            title="Apelaciones"
-            description="Defendemos tu caso ante negativas con estrategia legal."
+            title={t('services.card4Title')}
+            description={t('services.card4Desc')}
             features={[
-              "Análisis detallado",
-              "Argumentos sólidos",
-              "Documentación extra",
-              "Representación legal"
+              t('services.card4Feature1'),
+              t('services.card4Feature2'),
+              t('services.card4Feature3'),
+              t('services.card4Feature4')
             ]}
           />
         </div>

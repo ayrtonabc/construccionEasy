@@ -304,16 +304,15 @@ export default function ClientsManagement() {
         </div>
 
         {/* Filtros y búsqueda */}
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex justify-between items-center flex-wrap gap-4">
-          <div className="flex gap-4 flex-col sm:flex-row flex-grow">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex justify-between items-center flex-wrap gap-5">
+              <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-500 h-5 w-5" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar por nombre, pasaporte o email..."
-                className="pl-10 pr-4 py-3 w-full border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className="pl-12 pr-4 py-3.5 w-full border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-md text-base hover:border-indigo-300"
               />
               {searchTerm && (
                 <button
@@ -324,20 +323,23 @@ export default function ClientsManagement() {
                 </button>
               )}
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border rounded-lg px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white min-w-[180px] transition-all"
-            >
-              <option value="">Todos los clientes</option>
-              <option value="process">En Proceso</option>
-              <option value="completed">Completado</option>
-            </select>
-          </div>
+            <div className="flex-shrink-0">
+              <label className="block text-xs font-medium text-gray-500 mb-1 ml-1">Estado</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-sm w-auto sm:w-[140px] transition-all shadow-sm hover:border-indigo-300"
+              >
+                <option value="">Todos</option>
+                <option value="process">En Proceso</option>
+                <option value="completed">Completado</option>
+              </select>
+            </div>
+          
           {/* Add Create Client Button */}
           <Link
             to="/admin/crear-cliente"
-            className="bg-indigo-600 text-white px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all duration-300 shadow-sm"
+            className="bg-indigo-600 text-white px-5 py-3.5 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all duration-300 shadow-md whitespace-nowrap ml-auto"
           >
             <UserPlus size={20} />
             Crear Cliente
@@ -346,29 +348,29 @@ export default function ClientsManagement() {
 
         {/* Tabla de clientes */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="w-full">
+            <table className="w-full table-fixed divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-[18%] px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Cliente
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-[12%] px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Pasaporte
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-[20%] px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Contacto
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-[18%] px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Trabajo actual
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-[12%] px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Formulario
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-[12%] px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Fecha Inicio
                   </th>
-                  <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="w-[8%] px-3 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
@@ -380,36 +382,38 @@ export default function ClientsManagement() {
                       key={client.id}
                       className="hover:bg-gray-50 transition-colors"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">
+                      <td className="px-3 py-4">
+                        <div className="font-medium text-gray-900 truncate">
                           {client.full_name}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                      <td className="px-3 py-4">
+                        <div className="text-sm text-gray-900 truncate">
                           {client.passport_number}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 flex items-center">
-                          <Mail className="h-4 w-4 mr-1 text-gray-400" />
-                          {client.email}
+                      <td className="px-3 py-4">
+                        <div className="text-sm text-gray-900 flex items-center overflow-hidden">
+                          <Mail className="h-4 w-4 mr-1 flex-shrink-0 text-gray-400" />
+                          <span className="truncate">{client.email}</span>
                         </div>
-                        <div className="text-sm text-gray-500 flex items-center mt-1">
-                          <Phone className="h-4 w-4 mr-1 text-gray-400" />
-                          {client.phone_number}
+                        <div className="text-sm text-gray-500 flex items-center mt-1 overflow-hidden">
+                          <Phone className="h-4 w-4 mr-1 flex-shrink-0 text-gray-400" />
+                          <span className="truncate">{client.phone_number}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4">
                         {client.current_job ? (
-                          <div className="text-sm text-gray-900 flex items-center">
-                            <Briefcase className="h-4 w-4 mr-1 text-gray-400" />
-                            {client.current_job}
-                            {client.current_agency && (
-                              <span className="ml-1 text-gray-500">
-                                ({client.current_agency})
-                              </span>
-                            )}
+                          <div className="text-sm text-gray-900 flex items-center overflow-hidden">
+                            <Briefcase className="h-4 w-4 mr-1 flex-shrink-0 text-gray-400" />
+                            <span className="truncate">
+                              {client.current_job}
+                              {client.current_agency && (
+                                <span className="text-gray-500">
+                                  {" "}({client.current_agency})
+                                </span>
+                              )}
+                            </span>
                           </div>
                         ) : (
                           <span className="text-sm text-gray-500">
@@ -417,9 +421,9 @@ export default function ClientsManagement() {
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4">
                         <span
-                          className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             client.has_completed_form
                               ? "bg-green-100 text-green-800"
                               : "bg-amber-100 text-amber-800"
@@ -430,14 +434,14 @@ export default function ClientsManagement() {
                             : "En proceso"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4">
                         <div className="text-sm text-gray-900 flex items-center">
-                          <Calendar className="h-4 w-4 mr-1 text-gray-400" />
-                          {formatDate(client.created_at)}
+                          <Calendar className="h-4 w-4 mr-1 flex-shrink-0 text-gray-400" />
+                          <span className="truncate">{formatDate(client.created_at)}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-3">
+                      <td className="px-3 py-4 text-right text-sm font-medium">
+                        <div className="flex justify-end space-x-2">
                           <button
                             onClick={() => select(client)}
                             className="text-indigo-600 hover:text-indigo-900 transition-colors p-1 rounded-full hover:bg-indigo-50"

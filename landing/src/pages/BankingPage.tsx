@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
     import { motion } from 'framer-motion';
-    import { CreditCard, CheckCircle, FileText, Users, Building } from 'lucide-react';
+    import { FileText, CheckCircle, Users } from 'lucide-react';
+    import { useTranslation } from 'react-i18next';
 
     const BankingPage = () => {
+      const { t } = useTranslation();
       useEffect(() => {
         window.scrollTo(0, 0);
       }, []);
@@ -10,18 +12,18 @@ import React, { useEffect } from 'react';
       const steps = [
         {
           image: "https://images.unsplash.com/photo-1590650153855-d9e808231d41?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80",
-          title: "Documentación",
-          description: "Te ayudamos a preparar todos los documentos necesarios."
+          title: t('banking.page.step1.title'),
+          description: t('banking.page.step1.description')
         },
         {
           image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80",
-          title: "Elección del Banco",
-          description: "Te asesoramos para elegir el banco que mejor se adapte a tus necesidades."
+          title: t('banking.page.step2.title'),
+          description: t('banking.page.step2.description')
         },
         {
           image: "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80",
-          title: "Apertura de Cuenta",
-          description: "Te acompañamos en el proceso de apertura de tu cuenta bancaria."
+          title: t('banking.page.step3.title'),
+          description: t('banking.page.step3.description')
         }
       ];
 
@@ -37,13 +39,13 @@ import React, { useEffect } from 'react';
                   transition={{ duration: 0.8 }}
                 >
                   <div className="bg-green-500/10 inline-block rounded-full px-4 py-2 mb-6">
-                    <span className="text-green-600 font-medium">Servicio Gratuito</span>
+                    <span className="text-green-600 font-medium">{t('banking.sectionTag')}</span>
                   </div>
 
-                  <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                    Abre tu Cuenta Bancaria <br />
-                    <span className="text-blue-600">en Polonia sin Complicaciones</span>
-                  </h1>
+                  <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6"
+                      dangerouslySetInnerHTML={{ __html: t('banking.page.title').replace('<br />', '<br/>').replace('<span class="text-blue-600">', '<span class="text-blue-600">') }}
+                  />
+
 
                   <div className="space-y-6 mb-8">
                     <div className="flex items-start space-x-4">
@@ -51,8 +53,8 @@ import React, { useEffect } from 'react';
                         <FileText className="text-blue-600 h-6 w-6" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">Asesoría Personalizada</h3>
-                        <p className="text-gray-600">Te guiamos en cada paso del proceso.</p>
+                        <h3 className="font-semibold text-gray-900 mb-1">{t('banking.page.feature1.title')}</h3>
+                        <p className="text-gray-600">{t('banking.page.feature1.description')}</p>
                       </div>
                     </div>
 
@@ -61,8 +63,8 @@ import React, { useEffect } from 'react';
                         <CheckCircle className="text-blue-600 h-6 w-6" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">Sin Costo Adicional</h3>
-                        <p className="text-gray-600">Nuestro servicio de apertura de cuenta es completamente gratuito.</p>
+                        <h3 className="font-semibold text-gray-900 mb-1">{t('banking.page.feature2.title')}</h3>
+                        <p className="text-gray-600">{t('banking.page.feature2.description')}</p>
                       </div>
                     </div>
 
@@ -71,8 +73,8 @@ import React, { useEffect } from 'react';
                         <Users className="text-blue-600 h-6 w-6" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">Soporte Continuo</h3>
-                        <p className="text-gray-600">Estamos disponibles para resolver cualquier duda.</p>
+                        <h3 className="font-semibold text-gray-900 mb-1">{t('banking.page.feature3.title')}</h3>
+                        <p className="text-gray-600">{t('banking.page.feature3.description')}</p>
                       </div>
                     </div>
                   </div>
@@ -86,7 +88,7 @@ import React, { useEffect } from 'react';
                 >
                   <img
                     src="https://images.unsplash.com/photo-1601597111158-2fceff292cdc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80"
-                    alt="Tarjeta bancaria y documentos"
+                    alt={t('banking.imageAlt')}
                     className="rounded-2xl shadow-2xl"
                   />
                 </motion.div>
@@ -98,8 +100,8 @@ import React, { useEffect } from 'react';
           <section className="py-16 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">Proceso de Apertura de Cuenta</h2>
-                <p className="text-xl text-gray-600">Sigue estos sencillos pasos</p>
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('banking.page.processTitle')}</h2>
+                <p className="text-xl text-gray-600">{t('banking.page.processSubtitle')}</p>
               </div>
 
               <div className="grid md:grid-cols-3 gap-8">

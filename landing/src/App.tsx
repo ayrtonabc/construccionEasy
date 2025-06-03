@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
     import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+    import { useTranslation } from 'react-i18next';
 
     // Landing components
     import Navbar from "./components/Navbar";
@@ -22,6 +23,15 @@ import React from "react";
     import BankingPage from "./pages/BankingPage";
     import RegisterPage from "./pages/RegisterPage";
     import Form from "./pages/Form";
+    import PrivacyPolicyPage from "./pages/PrivacyPolicyPage"; // Import Privacy Policy Page
+    import RodoPage from "./pages/RodoPage"; // Import RODO Page
+    import CookiesPage from "./pages/CookiesPage"; // Import Cookies Page
+
+    // Pages for Company Services
+    import ServiciosEmpresasPage from "./pages/empresa/ServiciosEmpresasPage";
+    import LegalizacionEmpleadosPage from "./pages/empresa/LegalizacionEmpleadosPage";
+    import AsesoramientoEmpleadosPage from "./pages/empresa/AsesoramientoEmpleadosPage";
+    import BolsaTrabajoPage from "./pages/empresa/BolsaTrabajoPage";
 
     // Admin components
     import AdminNavbar from "./components/AdminNavbar";
@@ -46,6 +56,7 @@ import React from "react";
     import NavbarClient from "./components/NavbarClient";
     import ClientDashboard from "./pages/dashboard/HomePage";
 import PeselPage from "./pages/PeselPage";
+import RecursosPage from "./pages/RecursosPage";
 
     interface ProtectedRouteProps {
       children: React.ReactNode;
@@ -97,6 +108,27 @@ import PeselPage from "./pages/PeselPage";
     };
 
     function App() {
+      const { t, i18n } = useTranslation();
+
+      useEffect(() => {
+    // Establecer español como idioma predeterminado al cargar la aplicación
+    if (i18n.language !== 'es' && i18n.language !== 'en' && i18n.language !== 'pl') {
+      i18n.changeLanguage('es');
+    }
+    
+    document.title = t('pageTitles.main');
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language, t, i18n]);
+  
+  // Asegurar que el atributo lang del HTML esté en español por defecto
+  useEffect(() => {
+    const htmlElement = document.documentElement;
+    if (!htmlElement.lang || htmlElement.lang === 'en-US') {
+      htmlElement.lang = 'es';
+    }
+  }, []);
+
+
       const ClientDashboardWrapper = () => {
         const { user } = useAuth();
         return <ClientDashboard user={user} />;
@@ -145,6 +177,17 @@ import PeselPage from "./pages/PeselPage";
               <Route path="/guia" element={<><Navbar /><GuiaPage /><Footer /></>} />
               <Route path="/banking" element={<><Navbar /><BankingPage /><Footer /></>} />
               <Route path="/pesel" element={<><Navbar /><PeselPage /><Footer /></>} />
+              {/* Legal Pages */}
+              <Route path="/privacy-policy" element={<><Navbar /><PrivacyPolicyPage /><Footer /></>} />
+              <Route path="/rodo" element={<><Navbar /><RodoPage /><Footer /></>} />
+              <Route path="/cookies" element={<><Navbar /><CookiesPage /><Footer /></>} />
+              <Route path="/recursos" element={<><Navbar /><RecursosPage /><Footer /></>} />
+
+              {/* Company Services Pages */}
+              <Route path="/servicios-empresas" element={<><Navbar /><ServiciosEmpresasPage /><Footer /></>} />
+              <Route path="/servicios-empresas/legalizacion-empleados" element={<><Navbar /><LegalizacionEmpleadosPage /><Footer /></>} />
+              <Route path="/servicios-empresas/asesoramiento-empleados" element={<><Navbar /><AsesoramientoEmpleadosPage /><Footer /></>} />
+              <Route path="/servicios-empresas/bolsa-trabajo" element={<><Navbar /><BolsaTrabajoPage /><Footer /></>} />
 
               {/* Dashboard Client Routes */}
               <Route path="/dashboard" element={

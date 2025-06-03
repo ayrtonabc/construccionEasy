@@ -1,767 +1,474 @@
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PDFDocument } from "pdf-lib";
-import PeselPDF from "../../assets/Wniosek_o_nadanie_PESEL (1).pdf";
+import { generatePeselPdf } from "./PeselFormPdfGenerator";
+import { normalizeText } from "./textUtils";
 
-interface FormData {
-  // Step 1 - Dirección en Polonia
-  direccionCalle: string;
-  numeroCasa: string;
-  numeroEdificio: string;
-  codigoPostal: string;
-  ciudadDireccion: string;
+// Componentes auxiliares
+const Input = ({ label, name, value, onChange, placeholder = "" }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <input
+      type="text"
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+);
 
-  // Step 2 - Información Personal
-  primerNombre: string;
-  segundoNombre: string;
-  otroNombre: string;
-  apellidoPaterno: string;
-  genero: string;
-  fechaNacimiento: string;
-  paisNacimiento: string;
-  nacionalidad: string;
-  pasaporteNumero: string;
-  pasaporteVencimiento: string;
+const Select = ({ label, name, value, onChange, children }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <select
+      name={name}
+      value={value}
+      onChange={onChange}
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      {children}
+    </select>
+  </div>
+);
 
-  // Step 3 - Información Familiar
-  ciudadNacimiento: string;
-  primerNombrePadre: string;
-  apellidoPadre: string;
-  primerNombreMadre: string;
-  apellidoSolteroMadre: string;
+const CountrySelect = ({ label, name, value, onChange }) => (
+  <Select label={label} name={name} value={value} onChange={onChange}>
+    <option value="">Seleccionar</option>
+    <option value="POLSKA">Polonia</option>
+    <option value="ARGENTINA">Argentina</option>
+    <option value="BOLIVIA">Bolivia</option>
+    <option value="BRASIL">Brasil</option>
+    <option value="CHILE">Chile</option>
+    <option value="COLOMBIA">Colombia</option>
+    <option value="COSTA RICA">Costa Rica</option>
+    <option value="CUBA">Cuba</option>
+    <option value="ECUADOR">Ecuador</option>
+    <option value="EL SALVADOR">El Salvador</option>
+    <option value="GUATEMALA">Guatemala</option>
+    <option value="HONDURAS">Honduras</option>
+    <option value="MÉXICO">México</option>
+    <option value="NICARAGUA">Nicaragua</option>
+    <option value="PANAMÁ">Panamá</option>
+    <option value="PARAGUAY">Paraguay</option>
+    <option value="PERÚ">Perú</option>
+    <option value="REPÚBLICA DOMINICANA">República Dominicana</option>
+    <option value="URUGUAY">Uruguay</option>
+    <option value="VENEZUELA">Venezuela</option>
+  </Select>
+);
 
-  // Step 4 - Estado Civil
-  estadoCivil: string;
-  nombreConyuge: string;
-  apellidoConyuge: string;
-}
+const CitizenshipSelect = ({ label, name, value, onChange }) => (
+  <Select label={label} name={name} value={value} onChange={onChange}>
+    <option value="">Seleccionar</option>
+    <option value="ARGENTINA">Argentina</option>
+    <option value="BOLIVIA">Bolivia</option>
+    <option value="BRASIL">Brasil</option>
+    <option value="CHILE">Chile</option>
+    <option value="COLOMBIA">Colombia</option>
+    <option value="COSTA RICA">Costa Rica</option>
+    <option value="CUBA">Cuba</option>
+    <option value="ECUADOR">Ecuador</option>
+    <option value="EL SALVADOR">El Salvador</option>
+    <option value="GUATEMALA">Guatemala</option>
+    <option value="HONDURAS">Honduras</option>
+    <option value="MÉXICO">México</option>
+    <option value="NICARAGUA">Nicaragua</option>
+    <option value="PANAMÁ">Panamá</option>
+    <option value="PARAGUAY">Paraguay</option>
+    <option value="PERÚ">Perú</option>
+    <option value="REPÚBLICA DOMINICANA">República Dominicana</option>
+    <option value="URUGUAY">Uruguay</option>
+    <option value="VENEZUELA">Venezuela</option>
+  </Select>
+);
 
 const PeselForm: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<FormData>({
-    // Step 1
-    direccionCalle: "",
-    numeroCasa: "",
-    numeroEdificio: "",
-    codigoPostal: "",
-    ciudadDireccion: "",
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    // 1. Dirección
+    addressCity: "",
+    addressStreet: "",
+    addressHouseNumber: "",
+    addressApartmentNumber: "",
+    addressPostalCode: "",
 
-    // Step 2
-    primerNombre: "",
-    segundoNombre: "",
-    otroNombre: "",
-    apellidoPaterno: "",
-    genero: "",
-    fechaNacimiento: "",
-    paisNacimiento: "POLSKA",
-    nacionalidad: "",
-    pasaporteNumero: "",
-    pasaporteVencimiento: "",
+    // 2. Datos personales
+    firstName: "",
+    secondName: "",
+    lastName: "",
+    gender: "",
+    birthDate: "",
+    countryOfBirth: "",
+    countryOfResidence: "",
+    citizenship: "",
+    // Documento unificado (pasaporte)
+    documentAuthority: "",
+    documentExpiryDate: "",
+    documentSeriesAndNumber: "",
 
-    // Step 3
-    ciudadNacimiento: "",
-    primerNombrePadre: "",
-    apellidoPadre: "",
-    primerNombreMadre: "",
-    apellidoSolteroMadre: "",
+    // 3. Datos adicionales
+    placeOfBirth: "",
+    parentsSurname: "",
+    fathersFirstName: "",
+    fathersSurname: "",
+    mothersFirstName: "",
+    mothersSurname: "",
 
-    // Step 4
-    estadoCivil: "",
-    nombreConyuge: "",
-    apellidoConyuge: "",
+    // 4. Estado civil
+    maritalStatus: "",
+    spousePESEL: "",
+    spouseLastName: "",
+    spouseFirstName: "",
+    eventDate: "",
+    eventType: "",
+    eventAuthority: "",
+    eventDocumentReference: "",
+
+    // 5. Notificación
+    notificationFormat: "",
+    email: "",
+    epuapAddress: "",
+
+    // 6. Firma
+    date: "",
   });
 
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const nextStep = () => {
-    if (currentStep < 4) {
-      setCurrentStep((prev) => prev + 1);
-    }
-  };
+  const handleNext = () => setStep((prev) => prev + 1);
+  const handleBack = () => setStep((prev) => prev - 1);
 
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
-    }
-  };
-
-  // Función para convertir una fecha del formato YYYY-MM-DD a DD-MM-YYYY
-  const formatDate = (dateStr: string): string => {
-    if (!dateStr) return "";
-    const [year, month, day] = dateStr.split("-");
-    return `${day}-${month}-${year}`;
-  };
-
-  // Función para generar el PDF
   const generatePDF = async () => {
     try {
-      setIsLoading(true);
+      // Convertir los datos del formulario al formato esperado por PeselFormPdfGenerator
+      const peselFormData = {
+        // Step 1 - Dirección en Polonia
+        direccionCalle: formData.addressStreet,
+        numeroCasa: formData.addressHouseNumber,
+        numeroEdificio: formData.addressApartmentNumber,
+        codigoPostal: formData.addressPostalCode,
+        ciudadDireccion: formData.addressCity,
 
-      // Fetch the PDF template
-      const url = PeselPDF; // Ruta al PDF original
-      const existingPdfBytes = await fetch(url).then((res) =>
-        res.arrayBuffer()
-      );
+        // Step 2 - Información Personal
+        primerNombre: formData.firstName,
+        segundoNombre: formData.secondName,
+        otroNombre: "",
+        apellidoPaterno: formData.lastName,
+        genero: formData.gender === "K" ? "femenino" : "masculino",
+        fechaNacimiento: formData.birthDate,
+        paisNacimiento: formData.countryOfBirth,
+        nacionalidad: formData.citizenship,
+        pasaporteNumero: formData.documentSeriesAndNumber,
+        pasaporteVencimiento: formData.documentExpiryDate,
 
-      // Load the PDF document
-      const pdfDoc = await PDFDocument.load(existingPdfBytes, {
-        ignoreEncryption: true,
-      });
+        // Step 3 - Información Familiar
+        ciudadNacimiento: formData.placeOfBirth,
+        primerNombrePadre: formData.fathersFirstName,
+        apellidoPadre: formData.fathersSurname,
+        primerNombreMadre: formData.mothersFirstName,
+        apellidoSolteroMadre: formData.mothersSurname,
 
-      // Get the form fields
-      const form = pdfDoc.getForm();
+        // Step 4 - Estado Civil
+        estadoCivil: formData.maritalStatus === "kawaler/panna" ? "soltero" :
+                    formData.maritalStatus === "żonaty/zamężna" ? "casado" :
+                    formData.maritalStatus === "rozwiedziony/rozwiedziona" ? "divorciado" :
+                    formData.maritalStatus === "wdowiec/wdowa" ? "viudo" : "",
+        nombreConyuge: formData.spouseFirstName,
+        apellidoConyuge: formData.spouseLastName
+      };
 
-      // Verificar los nombres de los campos disponibles
-      const fields = form.getFields();
-      console.log("Campos disponibles en el PDF:", form);
-      console.log("Campos disponibles en el PDF:", fields.map((field) => field.getName()));
-      // Mostrar los nombres de los campos en la consola
-
-      fields.forEach((field, i) => {
-        console.log(`Campo #${i + 1}:`, field.getName());
-      });
-
-      // Mapeo de campos del formulario a campos del PDF
-      // Página 1 - Información de dirección
-      try {
-        // Usar los nombres exactos de los campos según aparecen en el PDF
-        form.getTextField("Ulica").setText(formData.direccionCalle);
-        form.getTextField("Numer domu").setText(formData.numeroCasa);
-        form.getTextField("Numer lokalu").setText(formData.numeroEdificio);
-
-        // Código postal (formato XX-XXX)
-        const cpParts = formData.codigoPostal.split("-");
-        if (cpParts.length === 2) {
-          // Si el código postal ya tiene el formato XX-XXX
-          form.getTextField("Kod pocztowy").setText(formData.codigoPostal);
-        } else {
-          // Si es necesario formatear el código postal
-          const cp = formData.codigoPostal.replace(/\\D/g, "");
-          if (cp.length >= 5) {
-            form
-              .getTextField("Kod pocztowy")
-              .setText(`${cp.substring(0, 2)}-${cp.substring(2, 5)}`);
-          } else {
-            form.getTextField("Kod pocztowy").setText(formData.codigoPostal);
-          }
-        }
-
-        form.getTextField("Miejscowość").setText(formData.ciudadDireccion);
-
-        // Página 1 - Información personal
-        form.getTextField("Imię pierwsze").setText(formData.primerNombre);
-        form.getTextField("Imię drugie").setText(formData.segundoNombre);
-        form.getTextField("Imiona kolejne").setText(formData.otroNombre);
-        form.getTextField("Nazwisko").setText(formData.apellidoPaterno);
-
-        // Género
-        if (formData.genero === "masculino") {
-          form.getCheckBox("mężczyzna").check();
-        } else if (formData.genero === "femenino") {
-          form.getCheckBox("kobieta").check();
-        }
-
-        // Fecha de nacimiento (formato DD-MM-YYYY)
-        if (formData.fechaNacimiento) {
-          const fechaFormateada = formatDate(formData.fechaNacimiento);
-          form.getTextField("Data urodzenia").setText(fechaFormateada);
-        }
-
-        // País de nacimiento y nacionalidad
-        form.getTextField("Kraj urodzenia").setText(formData.paisNacimiento);
-
-        if (formData.nacionalidad === "polaca") {
-          form.getCheckBox("polskie").check();
-        } else if (formData.nacionalidad === "apátrida") {
-          form.getCheckBox("bezpaństwowiec").check();
-        } else if (formData.nacionalidad === "otra") {
-          form.getCheckBox("inne").check();
-        }
-
-        // Datos del pasaporte
-        form.getTextField("Seria i numer").setText(formData.pasaporteNumero);
-
-        if (formData.pasaporteVencimiento) {
-          const vencimientoFormateado = formatDate(
-            formData.pasaporteVencimiento
-          );
-          form
-            .getTextField("Data ważności paszportu")
-            .setText(vencimientoFormateado);
-        }
-
-        // Página 2 - Información familiar
-        form
-          .getTextField("Miejsce urodzenia")
-          .setText(formData.ciudadNacimiento);
-        form
-          .getTextField("Imię ojca (pierwsze)")
-          .setText(formData.primerNombrePadre);
-        form
-          .getTextField("Nazwisko rodowe ojca")
-          .setText(formData.apellidoPadre);
-        form
-          .getTextField("Imię matki (pierwsze)")
-          .setText(formData.primerNombreMadre);
-        form
-          .getTextField("Nazwisko rodowe matki")
-          .setText(formData.apellidoSolteroMadre);
-
-        // Página 2 - Estado civil
-        switch (formData.estadoCivil) {
-          case "soltero":
-            form.getCheckBox("kawaler / panna").check();
-            break;
-          case "casado":
-            form.getCheckBox("żonaty / zamężna").check();
-            // Información del cónyuge
-            form.getTextField("Imię małżonka").setText(formData.nombreConyuge);
-            form
-              .getTextField("Nazwisko rodowe małżonka")
-              .setText(formData.apellidoConyuge);
-            break;
-          case "divorciado":
-            form.getCheckBox("rozwiedziony / rozwiedziona").check();
-            break;
-          case "viudo":
-            form.getCheckBox("wdowiec / wdowa").check();
-            break;
-        }
-
-        // Página 3 - Base legal (siempre la misma)
-        form
-          .getTextField("Podstawa prawna")
-          .setText(
-            "Paragraf 6, 8 rozporządzenia Ministra Cyfryzacji z dnia 26 czerwca 2020 r. w sprawie profilu zaufanego i podpisu zaufanego (tj. Dz.U. z 2020 r. poz. 1194)"
-          );
-
-        // Página 4 - Fecha y lugar
-        const today = new Date();
-        const formattedToday = `${String(today.getDate()).padStart(
-          2,
-          "0"
-        )}-${String(today.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}-${today.getFullYear()}`;
-        form.getTextField("Data").setText(formattedToday);
-        // Usar el mismo campo Miejscowość para la ciudad final
-        const miejscowoscFields = fields.filter(
-          (field) => field.getName() === "Miejscowość"
-        );
-        if (miejscowoscFields.length > 1) {
-          // Si hay más de un campo con el mismo nombre, usar el segundo
-          (miejscowoscFields[1] as any).setText(formData.ciudadDireccion);
-        }
-      } catch (fieldError: any) {
-        console.error("Error al completar un campo específico:", fieldError);
-        throw new Error(`Error al completar el campo: ${fieldError.message}`);
-      }
-
-      // Guardar y descargar el PDF
-      const pdfBytes = await pdfDoc.save();
-
-      // Crear un blob y descargarlo
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
-      const link = document.createElement("a");
+      // Generar el PDF utilizando la función existente
+      const pdfBytes = await generatePeselPdf(peselFormData);
+      
+      // Crear un blob y un enlace para descargar el PDF
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `solicitud_pesel_${formData.primerNombre}_${formData.apellidoPaterno}.pdf`;
-      document.body.appendChild(link);
+      link.download = `solicitud_pesel_${formData.firstName}_${formData.lastName}.pdf`;
       link.click();
-      document.body.removeChild(link);
-
-      setIsLoading(false);
-
-      // Mensaje de éxito solo después de completar el proceso
-      alert(
-        "Solicitud procesada con éxito. Se ha descargado el PDF con sus datos."
-      );
-    } catch (error: any) {
-      console.error("Error al generar el PDF:", error);
-      alert(`Hubo un error al generar el PDF: ${error.message}`);
-      setIsLoading(false);
+    } catch (error) {
+      console.error('Error al generar el PDF:', error);
+      alert('Ocurrió un error al generar el PDF. Por favor, inténtelo de nuevo.');
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Validar datos necesarios
-    if (
-      !formData.primerNombre ||
-      !formData.apellidoPaterno ||
-      !formData.fechaNacimiento
-    ) {
-      alert(
-        "Por favor complete al menos los campos obligatorios: Nombre, Apellido y Fecha de Nacimiento"
-      );
-      return;
-    }
+  const renderFormPreview = () => (
+    <div id="form-preview" className="bg-white text-sm p-8 border border-gray-300 max-w-4xl mx-auto shadow-lg">
+      <h2 className="text-center font-bold text-xl mb-4">Wniosek o nadanie numeru PESEL</h2>
+      <p className="text-center text-gray-600 mb-6">Rzeczpospolita Polska EL/W/1</p>
 
-    // Solo procesar cuando estamos en el paso 4
-    if (currentStep === 4) {
-      // Generar el PDF
-      await generatePDF();
-    } else {
-      // Si no estamos en el último paso, avanzar al siguiente
-      nextStep();
-    }
-  };
+      {/* Page 1 */}
+      <div className="border-b pb-6 mb-6">
+        <h3 className="font-semibold mb-2">1. Wnioskodawca</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div><strong>Miejscowość:</strong> {formData.addressCity}</div>
+          <div><strong>Kod pocztowy:</strong> {formData.addressPostalCode}</div>
+          <div><strong>Ulica:</strong> {formData.addressStreet}</div>
+          <div><strong>Numer domu:</strong> {formData.addressHouseNumber}</div>
+          <div><strong>Numer lokalu:</strong> {formData.addressApartmentNumber || "-"}</div>
+        </div>
 
-  const renderStep = () => {
-    switch (currentStep) {
+        <h3 className="font-semibold mt-6 mb-2">2. Dane osoby, której dotyczy wniosek</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div><strong>Imię pierwsze:</strong> {formData.firstName}</div>
+          <div><strong>Imię drugie:</strong> {formData.secondName || "-"}</div>
+          <div><strong>Nazwisko:</strong> {formData.lastName}</div>
+          <div><strong>Płeć:</strong> {formData.gender === "K" ? "Kobieta" : formData.gender === "M" ? "Mężczyzna" : "-"}</div>
+          <div><strong>Data urodzenia:</strong> {formData.birthDate}</div>
+          <div><strong>Kraj urodzenia:</strong> {formData.countryOfBirth}</div>
+          <div><strong>Kraj miejsca zamieszkania:</strong> {formData.countryOfResidence}</div>
+          <div><strong>Obywatelstwo:</strong> {formData.citizenship}</div>
+          <div><strong>Seria i numer dokumentu:</strong> {formData.documentSeriesAndNumber || "-"}</div>
+          <div><strong>Data ważności dokumentu:</strong> {formData.documentExpiryDate || "-"}</div>
+        </div>
+      </div>
+
+      {/* Page 2 */}
+      <div className="border-b pb-6 mb-6">
+        <h3 className="font-semibold mb-2">3. Dodatkowe dane osoby</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div><strong>Miejsce urodzenia:</strong> {formData.placeOfBirth || "-"}</div>
+          <div><strong>Nazwisko rodowe:</strong> {formData.parentsSurname || "-"}</div>
+          <div><strong>Imię ojca:</strong> {formData.fathersFirstName || "-"}</div>
+          <div><strong>Nazwisko ojca:</strong> {formData.fathersSurname || "-"}</div>
+          <div><strong>Imię matki:</strong> {formData.mothersFirstName || "-"}</div>
+          <div><strong>Nazwisko matki:</strong> {formData.mothersSurname || "-"}</div>
+        </div>
+      </div>
+
+      {/* Page 3 */}
+      <div className="border-b pb-6 mb-6">
+        <h3 className="font-semibold mb-2">4. Stan cywilny</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div><strong>Stan cywilny:</strong> {formData.maritalStatus}</div>
+          {formData.maritalStatus === "żonaty/zamężna" && (
+            <>
+              <div><strong>PESEL małżonka:</strong> {formData.spousePESEL}</div>
+              <div><strong>Imię małżonka:</strong> {formData.spouseFirstName}</div>
+              <div><strong>Nazwisko małżonka:</strong> {formData.spouseLastName}</div>
+            </>
+          )}
+          <div><strong>Data zdarzenia:</strong> {formData.eventDate || "-"}</div>
+          <div><strong>Zdarzenie:</strong> {formData.eventType || "-"}</div>
+          <div><strong>Autorzytacja:</strong> {formData.eventAuthority || "-"}</div>
+          <div><strong>Sygnatura akt:</strong> {formData.eventDocumentReference || "-"}</div>
+        </div>
+      </div>
+
+      {/* Page 4 */}
+      <div className="border-b pb-6 mb-6">
+        <h3 className="font-semibold mb-2">5. Powiadomienie</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div><strong>Format powiadomienia:</strong> {formData.notificationFormat === "elektroniczna" ? "Elektroniczna" : "Papierowa"}</div>
+          {formData.notificationFormat === "elektroniczna" && (
+            <>
+              <div><strong>Email:</strong> {formData.email || "-"}</div>
+              <div><strong>ePUAP:</strong> {formData.epuapAddress || "-"}</div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Page 5 */}
+      <div className="border-b pb-6 mb-6">
+        <h3 className="font-semibold mb-2">6. Podpisy</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div><strong>Miejscowość:</strong> {formData.addressCity || "-"}</div>
+          <div><strong>Data:</strong> {formData.date || "-"}</div>
+        </div>
+        <p className="mt-4 italic">Podpis wnioskodawcy: _________________________</p>
+      </div>
+    </div>
+  );
+
+  const renderStepContent = () => {
+    switch (step) {
       case 1:
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Paso 1: Dirección en Polonia
-            </h3>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Dirección: Calle
-              </label>
-              <input
-                type="text"
-                name="direccionCalle"
-                value={formData.direccionCalle}
-                onChange={handleChange}
-                placeholder="Nombre de la calle"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Número casa
-                </label>
-                <input
-                  type="text"
-                  name="numeroCasa"
-                  value={formData.numeroCasa}
-                  onChange={handleChange}
-                  placeholder="Ej: 10"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Número Edificio/Apartamento
-                </label>
-                <input
-                  type="text"
-                  name="numeroEdificio"
-                  value={formData.numeroEdificio}
-                  onChange={handleChange}
-                  placeholder="Ej: 5A (Opcional)"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Código Postal
-                </label>
-                <input
-                  type="text"
-                  name="codigoPostal"
-                  value={formData.codigoPostal}
-                  onChange={handleChange}
-                  placeholder="Formato: XX-XXX"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Ciudad
-                </label>
-                <input
-                  type="text"
-                  name="ciudadDireccion"
-                  value={formData.ciudadDireccion}
-                  onChange={handleChange}
-                  placeholder="Ciudad de residencia"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
+            <h2 className="text-xl font-semibold mb-4">Dirección del Solicitante</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Ciudad" name="addressCity" value={formData.addressCity} onChange={handleChange} />
+              <Input label="Calle" name="addressStreet" value={formData.addressStreet} onChange={handleChange} />
+              <Input label="Número de Casa" name="addressHouseNumber" value={formData.addressHouseNumber} onChange={handleChange} />
+              <Input label="Número de Apartamento" name="addressApartmentNumber" value={formData.addressApartmentNumber} onChange={handleChange} />
+              <Input label="Código Postal" name="addressPostalCode" value={formData.addressPostalCode} onChange={handleChange} />
             </div>
           </div>
         );
-
       case 2:
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Paso 2: Información Personal
-            </h3>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Primer Nombre
-                </label>
-                <input
-                  type="text"
-                  name="primerNombre"
-                  value={formData.primerNombre}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Segundo Nombre
-                </label>
-                <input
-                  type="text"
-                  name="segundoNombre"
-                  value={formData.segundoNombre}
-                  onChange={handleChange}
-                  placeholder="(Opcional)"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Otro Nombre
-              </label>
-              <input
-                type="text"
-                name="otroNombre"
-                value={formData.otroNombre}
-                onChange={handleChange}
-                placeholder="(Opcional)"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Apellido Paterno
-              </label>
-              <input
-                type="text"
-                name="apellidoPaterno"
-                value={formData.apellidoPaterno}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Género
-              </label>
-              <select
-                name="genero"
-                value={formData.genero}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
+            <h2 className="text-xl font-semibold mb-4">Datos Personales</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Primer Nombre" name="firstName" value={formData.firstName} onChange={handleChange} />
+              <Input label="Segundo Nombre" name="secondName" value={formData.secondName} onChange={handleChange} />
+              <Input label="Apellido" name="lastName" value={formData.lastName} onChange={handleChange} />
+              <Select label="Género" name="gender" value={formData.gender} onChange={handleChange}>
                 <option value="">Seleccionar</option>
-                <option value="masculino">Masculino</option>
-                <option value="femenino">Femenino</option>
-                <option value="otro">Otro</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Fecha de Nacimiento
-              </label>
-              <input
-                type="date"
-                name="fechaNacimiento"
-                value={formData.fechaNacimiento}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  País de Nacimiento
-                </label>
-                <input
-                  type="text"
-                  name="paisNacimiento"
-                  value={formData.paisNacimiento}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Nacionalidad
-                </label>
-                <select
-                  name="nacionalidad"
-                  value={formData.nacionalidad}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="polaca">Polaca</option>
-                  <option value="apátrida">Apátrida</option>
-                  <option value="otra">Otra</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Número de Pasaporte
-                </label>
-                <input
-                  type="text"
-                  name="pasaporteNumero"
-                  value={formData.pasaporteNumero}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Fecha de Vencimiento
-                </label>
-                <input
-                  type="date"
-                  name="pasaporteVencimiento"
-                  value={formData.pasaporteVencimiento}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
+                <option value="K">Femenino</option>
+                <option value="M">Masculino</option>
+              </Select>
+              <Input label="Fecha de Nacimiento (dd-mm-yyyy)" name="birthDate" value={formData.birthDate} onChange={handleChange} />
+              <CountrySelect label="País de Nacimiento" name="countryOfBirth" value={formData.countryOfBirth} onChange={handleChange} />
+              <CountrySelect label="País de Residencia" name="countryOfResidence" value={formData.countryOfResidence} onChange={handleChange} />
+              <CitizenshipSelect label="Ciudadanía o Estatus" name="citizenship" value={formData.citizenship} onChange={handleChange} />
+              <Input label="Autoridad que Emite el Documento" name="documentAuthority" value={formData.documentAuthority} onChange={handleChange} />
+              <Input label="Vencimiento del Documento (dd-mm-yyyy)" name="documentExpiryDate" value={formData.documentExpiryDate} onChange={handleChange} />
+              <Input label="Serie y Número del Documento" name="documentSeriesAndNumber" value={formData.documentSeriesAndNumber} onChange={handleChange} />
             </div>
           </div>
         );
-
       case 3:
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Paso 3: Información Familiar
-            </h3>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Ciudad de Nacimiento
-              </label>
-              <input
-                type="text"
-                name="ciudadNacimiento"
-                value={formData.ciudadNacimiento}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Primer Nombre del Padre
-                </label>
-                <input
-                  type="text"
-                  name="primerNombrePadre"
-                  value={formData.primerNombrePadre}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Apellido del Padre
-                </label>
-                <input
-                  type="text"
-                  name="apellidoPadre"
-                  value={formData.apellidoPadre}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Primer Nombre de la Madre
-                </label>
-                <input
-                  type="text"
-                  name="primerNombreMadre"
-                  value={formData.primerNombreMadre}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Apellido de Soltera de la Madre
-                </label>
-                <input
-                  type="text"
-                  name="apellidoSolteroMadre"
-                  value={formData.apellidoSolteroMadre}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
+            <h2 className="text-xl font-semibold mb-4">Datos Adicionales</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Lugar de Nacimiento" name="placeOfBirth" value={formData.placeOfBirth} onChange={handleChange} />
+              <Input label="Apellido de Soltera" name="parentsSurname" value={formData.parentsSurname} onChange={handleChange} />
+              <Input label="Nombre del Padre" name="fathersFirstName" value={formData.fathersFirstName} onChange={handleChange} />
+              <Input label="Apellido Paterno" name="fathersSurname" value={formData.fathersSurname} onChange={handleChange} />
+              <Input label="Nombre de la Madre" name="mothersFirstName" value={formData.mothersFirstName} onChange={handleChange} />
+              <Input label="Apellido Materno" name="mothersSurname" value={formData.mothersSurname} onChange={handleChange} />
             </div>
           </div>
         );
-
       case 4:
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Paso 4: Estado Civil
-            </h3>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Estado Civil
-              </label>
-              <select
-                name="estadoCivil"
-                value={formData.estadoCivil}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
+            <h2 className="text-xl font-semibold mb-4">Estado Civil</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select label="Estado Civil" name="maritalStatus" value={formData.maritalStatus} onChange={handleChange}>
                 <option value="">Seleccionar</option>
-                <option value="soltero">Soltero/a</option>
-                <option value="casado">Casado/a</option>
-                <option value="divorciado">Divorciado/a</option>
-                <option value="viudo">Viudo/a</option>
-              </select>
+                <option value="kawaler/panna">Soltero/a</option>
+                <option value="żonaty/zamężna">Casado/a</option>
+                <option value="rozwiedziony/rozwiedziona">Divorciado/a</option>
+                <option value="wdowiec/wdowa">Viudo/a</option>
+              </Select>
+
+              {formData.maritalStatus === "żonaty/zamężna" && (
+                <>
+                  <Input label="Número PESEL del Cónyuge" name="spousePESEL" value={formData.spousePESEL} onChange={handleChange} />
+                  <Input label="Apellido del Cónyuge" name="spouseLastName" value={formData.spouseLastName} onChange={handleChange} />
+                  <Input label="Nombre del Cónyuge" name="spouseFirstName" value={formData.spouseFirstName} onChange={handleChange} />
+                </>
+              )}
+
+              <Input label="Fecha del Evento (dd-mm-yyyy)" name="eventDate" value={formData.eventDate} onChange={handleChange} />
+              <Select label="Tipo de Evento" name="eventType" value={formData.eventType} onChange={handleChange}>
+                <option value="">Seleccionar</option>
+                <option value="zawarcie związku małżeńskiego">Matrimonio</option>
+                <option value="rozwiązanie związku małżeńskiego">Disolución del Matrimonio</option>
+                <option value="unieważnienie związku małżeńskiego">Nulidad del Matrimonio</option>
+                <option value="zgon małżonka">Muerte del Cónyuge</option>
+                <option value="zgon małżonka- znalezienie zwłok">Muerte del Cónyuge - Hallazgo del Cadáver</option>
+              </Select>
+              <Input label="Autoridad del Evento" name="eventAuthority" value={formData.eventAuthority} onChange={handleChange} />
+              <Input label="Referencia del Documento del Evento" name="eventDocumentReference" value={formData.eventDocumentReference} onChange={handleChange} />
             </div>
-
-            {formData.estadoCivil === "casado" && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Nombre del Cónyuge
-                  </label>
-                  <input
-                    type="text"
-                    name="nombreConyuge"
-                    value={formData.nombreConyuge}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Apellido del Cónyuge
-                  </label>
-                  <input
-                    type="text"
-                    name="apellidoConyuge"
-                    value={formData.apellidoConyuge}
-                    onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-              </>
-            )}
           </div>
         );
-
+      case 5:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold mb-4">Notificación</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select label="Formato de Notificación" name="notificationFormat" value={formData.notificationFormat} onChange={handleChange}>
+                <option value="">Seleccionar</option>
+                <option value="papierowa">Papelera</option>
+                <option value="elektroniczna">Electrónica</option>
+              </Select>
+              {formData.notificationFormat === "elektroniczna" && (
+                <>
+                  <Input label="Correo Electrónico" name="email" value={formData.email} onChange={handleChange} />
+                  <Input label="Dirección ePUAP" name="epuapAddress" value={formData.epuapAddress} onChange={handleChange} />
+                </>
+              )}
+            </div>
+          </div>
+        );
+      case 6:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold mb-4">Firma y Fecha</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Fecha (dd-mm-yyyy)" name="date" value={formData.date} onChange={handleChange} />
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-gray-600">La ciudad utilizada para la firma será la misma que ingresó en la dirección: <strong>{formData.addressCity || "(No ingresada)"}</strong></p>
+            </div>
+            <div className="mt-8 p-4 bg-gray-100 rounded-md">
+              <h3 className="font-bold text-lg mb-2">Aviso Legal</h3>
+              <p>Declaro bajo juramento que los datos proporcionados son verdaderos y completos. Soy consciente de que proporcionar información falsa constituye un delito.</p>
+            </div>
+          </div>
+        );
+      // Eliminado el paso 7 (vista previa)
       default:
         return null;
     }
   };
 
+  const handleFinish = () => {
+    generatePDF();
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Solicitud de PESEL
-        </h2>
-        <p className="text-sm text-gray-600 mt-1">
-          Completa el formulario para generar tu solicitud oficial en formato
-          PDF
-        </p>
-        <div className="mt-4">
-          <div className="flex items-center">
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div
-                className="bg-blue-600 h-2.5 rounded-full"
-                style={{ width: `${(currentStep / 4) * 100}%` }}
-              ></div>
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
+        <div className="bg-blue-600 px-6 py-4 text-white">
+          <h1 className="text-2xl font-bold">Solicitud de Asignación de Número PESEL</h1>
+          <p className="text-sm opacity-90">Formulario para ciudadanos latinoamericanos</p>
+        </div>
+
+        <div className="p-6">
+          <div className="mb-8">
+            <div className="flex justify-between items-center">
+              {["Dirección", "Datos Personales", "Adicionales", "Estado Civil", "Notificación", "Firma"].map((label, index) => (
+                <div key={index} className={`flex flex-col items-center ${step > index + 1 ? "text-green-600" : step === index + 1 ? "text-blue-600" : ""}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${step > index + 1 ? "border-green-600 bg-green-600 text-white" : step === index + 1 ? "border-blue-600 bg-white text-blue-600" : "border-gray-300"}`}>
+                    {step > index + 1 ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      index + 1
+                    )}
+                  </div>
+                  <span className="mt-2 text-xs">{label}</span>
+                </div>
+              ))}
             </div>
-            <span className="ml-4 text-sm text-gray-600">
-              Paso {currentStep} de 4
-            </span>
+            <div className="mt-2 h-1 bg-gray-200 rounded-full">
+              <div className="h-1 bg-blue-600 rounded-full" style={{ width: `${(step / 6) * 100}%` }}></div>
+            </div>
+          </div>
+
+          {renderStepContent()}
+
+          <div className="mt-8 flex justify-between">
+            {step > 1 && step !== 7 && (
+              <button onClick={handleBack} className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 transition-colors">
+                Atrás
+              </button>
+            )}
+            {step < 6 ? (
+              <button onClick={handleNext} className="ml-auto px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                Siguiente
+              </button>
+            ) : step === 6 && (
+              <button onClick={generatePDF} className="ml-auto px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                Finalizar y Descargar PDF
+              </button>
+            )}
           </div>
         </div>
       </div>
-
-      <form onSubmit={handleSubmit}>
-        {renderStep()}
-
-        <div className="mt-8 flex justify-between">
-          <button
-            type="button"
-            onClick={prevStep}
-            disabled={currentStep === 1}
-            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium ${
-              currentStep === 1
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Anterior
-          </button>
-
-          {currentStep < 4 ? (
-            <button
-              type="button"
-              onClick={nextStep}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-            >
-              Siguiente
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`flex items-center px-6 py-2 ${
-                isLoading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
-              } text-white rounded-md text-sm font-medium`}
-            >
-              {isLoading ? "Generando PDF..." : "Enviar Solicitud"}
-            </button>
-          )}
-        </div>
-      </form>
     </div>
   );
 };

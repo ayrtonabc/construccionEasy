@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
 import { Link as RouterLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import 'swiper/css';
 import 'swiper/css/pagination';
 
@@ -15,7 +16,6 @@ const HeroSlide = ({ image, title, description }) => (
       <p className="text-gray-100 text-sm sm:text-base">{description}</p>
     </div>
     <div className="relative w-full h-64 sm:h-80">
-      {/* Quité shadow-xl */}
       <img 
         src={image} 
         alt={title} 
@@ -26,26 +26,48 @@ const HeroSlide = ({ image, title, description }) => (
 );
 
 const Hero = () => {
+  const { t, i18n } = useTranslation();
+
+  // Función para obtener la ruta de la imagen según el idioma actual
+  // Solo se aplica a las imágenes que deben cambiar según el idioma (seguimiento y documentos)
+  const getImagePath = (baseName: string, supportedLanguages = ['en', 'pl']) => {
+    // Solo aplicar cambios de idioma a las imágenes específicas
+    if (baseName === 'seguimiento' || baseName === 'documentos') {
+      const currentLang = i18n.language;
+      
+      // Si el idioma actual es español o no está soportado, usar la imagen por defecto
+      if (currentLang === 'es' || !supportedLanguages.includes(currentLang)) {
+        return `img/${baseName}.webp`;
+      }
+      
+      // Si no, usar la imagen específica del idioma
+      return `img/${baseName}-${currentLang}.webp`;
+    }
+    
+    // Para otras imágenes, devolver la ruta sin modificar por idioma
+    return `img/${baseName}.webp`;
+  };
+
   const processSteps = [
     {
       image: "img/inicio.webp",
-      title: "En 48 Horas",
-      description: "Presentación de tu Solicitud"
+      title: t('hero.slide1Title'),
+      description: t('hero.slide1Desc')
     },
     {
       image: "img/yellow.webp",
-      title: "En 3 Semanas",
-      description: "Recibiras tu Carta Amarilla"
+      title: t('hero.slide2Title'),
+      description: t('hero.slide2Desc')
     },
     {
-      image: "img/seguimiento.webp",
-      title: "Sistema de Seguimiento",
-      description: "Directamente conectado con la Oficina de Extrangeria, Tendras Informacion Actualizada del estado de tu proceso"
+      image: getImagePath('seguimiento'),
+      title: t('hero.slide3Title'),
+      description: t('hero.slide3Desc')
     },
     {
-      image: "img/documentos.webp",
-      title: "Todos Los documentos al Alcance",
-      description: "Dispone de tu documentacion Ordenada y Actualizada "
+      image: getImagePath('documentos'),
+      title: t('hero.slide4Title'),
+      description: t('hero.slide4Desc')
     },
   ];
 
@@ -70,15 +92,16 @@ const Hero = () => {
             className="text-center lg:text-left"
           >
             <div className="inline-block bg-blue-500/10 backdrop-blur-sm border border-blue-200/20 rounded-full px-3 py-1.5 mb-4">
-              <span className="text-blue-200 text-xs sm:text-sm font-medium">Gestion Confiable y Segura</span>
+              <span className="text-blue-200 text-xs sm:text-sm font-medium">{t('hero.tagline')}</span>
             </div>
             
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
-              Tu residencia <span className="text-blue-400">sin complicaciones</span>
-            </h1>
+            <h1 
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight"
+              dangerouslySetInnerHTML={{ __html: t('hero.title') }}
+            />
             
             <p className="text-sm sm:text-base md:text-lg text-gray-200 mb-6 leading-relaxed max-w-2xl">
-              Te acompañamos en cada etapa de tu proceso de residencia con total transparencia, asegurándonos de que siempre tengas toda la información clara y actualizada en cada paso.
+              {t('hero.description')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
@@ -88,14 +111,14 @@ const Hero = () => {
                 duration={500}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all duration-300 text-sm sm:text-base"
               >
-                Ver Detalles
+                {t('hero.detailsButton')}
                 <ArrowRight size={20} className="hidden sm:block" />
               </Link>
               <RouterLink
                 to="/login"
                 className="bg-white/10 backdrop-blur-sm text-white border border-white/20 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium hover:bg-white/20 transition-all duration-300 text-sm sm:text-base"
               >
-                Acceso Clientes
+                {t('hero.loginButton')}
               </RouterLink>
             </div>
           </motion.div>
